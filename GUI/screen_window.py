@@ -1,18 +1,16 @@
 import threading
 import time
-import tkinter
 from tkinter.filedialog import asksaveasfilename
 
 import customtkinter as ctk
 import pyautogui as pyautogui
 from PIL import ImageTk
-from PIL import Image
 
 from handlers.clipboard_handler import copy_screenshot_to_clipboard
-from handlers.file_save_handler import save_image_to_file
 
 
 class ScreenWindow(ctk.CTkToplevel):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -72,33 +70,43 @@ class ScreenWindow(ctk.CTkToplevel):
         self.unbind("<ButtonRelease-1>")
 
     def bind_events(self):
-        self.bind_arrows()
-        self.bind_key_releases()
+        key_up = "Up"
+        key_left = "Left"
+        key_right = "Right"
+        key_down = "Down"
+        self.bind_keys_move(key_up, key_left, key_right, key_down)
+        self.bind_keys_move_release(key_up, key_left, key_right, key_down)
+
         self.bind_mouse_events()
-        self.bind_escape()
-        self.bind_configure()
+
+        destroy = "Escape"
+        self.bind_destroy(destroy)
+
         self.bind_control_l()
-        self.bind_shift_l()
 
-    def bind_arrows(self):
-        self.bind("<Up>", self.handle_up_arrow)
-        self.bind("<Left>", self.handle_left_arrow)
-        self.bind("<Right>", self.handle_right_arrow)
-        self.bind("<Down>", self.handle_down_arrow)
+        self.bind_shift_l(key_up, key_left, key_right, key_down)
 
-    def bind_key_releases(self):
-        self.bind("<KeyRelease-Up>", self.create_menu_and_unbind_selection)
-        self.bind("<KeyRelease-Left>", self.create_menu_and_unbind_selection)
-        self.bind("<KeyRelease-Right>", self.create_menu_and_unbind_selection)
-        self.bind("<KeyRelease-Down>", self.create_menu_and_unbind_selection)
+        self.bind_configure()
+
+    def bind_keys_move(self, key_up: str, key_left: str, key_right: str, key_down: str):
+        self.bind(f"<{key_up}>", self.handle_up_move)
+        self.bind(f"<{key_left}>", self.handle_left_move)
+        self.bind(f"<{key_right}>", self.handle_right_move)
+        self.bind(f"<{key_down}>", self.handle_down_move)
+
+    def bind_keys_move_release(self, key_up: str, key_left: str, key_right: str, key_down: str):
+        self.bind(f"<KeyRelease-{key_up}>", self.create_menu_and_unbind_selection)
+        self.bind(f"<KeyRelease-{key_left}>", self.create_menu_and_unbind_selection)
+        self.bind(f"<KeyRelease-{key_right}>", self.create_menu_and_unbind_selection)
+        self.bind(f"<KeyRelease-{key_down}>", self.create_menu_and_unbind_selection)
 
     def bind_mouse_events(self):
         self.bind("<Button-1>", self.start_selection)
         self.bind("<B1-Motion>", self.update_selection)
         self.bind("<ButtonRelease-1>", self.create_menu_and_unbind_selection)
 
-    def bind_escape(self):
-        self.bind("<Escape>", self.destroy_window)
+    def bind_destroy(self, destroy: str):
+        self.bind(f"<{destroy}>", self.destroy_window)
 
     def bind_configure(self):
         self.canvas.bind("<Configure>", self.create_dimming_rectangle)
@@ -107,62 +115,80 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind("<KeyPress-Control_L>", self.enable_mouse_selection)
         self.bind("<KeyRelease-Control_L>", self.disable_mouse_selection)
 
-    def bind_shift_l(self):
-        self.bind("<KeyPress-Shift_L>", self.handle_press_shift_arrow)
-        self.bind("<KeyRelease-Shift_L>", self.handle_release_shift_arrow)
+    def bind_shift_l(self, key_up: str, key_left: str, key_right: str, key_down: str):
+        self.bind("<KeyPress-Shift_L>", lambda event: self.handle_stretch(event, key_up, key_left, key_right, key_down))
+        self.bind("<KeyRelease-Shift_L>", lambda event: self.handle_stretch_release(event, key_up, key_left, key_right, key_down))
 
-    def handle_release_shift_arrow(self, event):
+    def handle_stretch_release(self, event, key_up: str, key_left: str, key_right: str, key_down: str):
         self.holding_shift_l = False
-        self.bind_arrows()
-        self.bind_key_releases()
+        self.bind_keys_move(key_up, key_left, key_right, key_down)
+        self.bind_keys_move_release(key_up, key_left, key_right, key_down)
 
-    def handle_press_shift_arrow(self, event):
+    def handle_stretch(self, event, key_up: str, key_left: str, key_right: str, key_down: str):
         self.holding_shift_l = True
-        self.bind_shift_arrows()
-        self.bind_key_releases()
+        self.bind_shift_arrows(key_up, key_left, key_right, key_down)
+        self.bind_keys_move_release(key_up, key_left, key_right, key_down)
 
-    def bind_shift_arrows(self):
-        self.bind("<Up>", self.handle_shift_up_arrow)
-        self.bind("<Left>", self.handle_shift_left_arrow)
-        self.bind("<Right>", self.handle_shift_right_arrow)
-        self.bind("<Down>", self.handle_shift_down_arrow)
+    def bind_shift_arrows(self, key_up: str, key_left: str, key_right: str, key_down: str):
+        self.bind(f"<{key_up}>", self.handle_up_stretch)
+        self.bind(f"<{key_left}>", self.handle_left_stretch)
+        self.bind(f"<{key_right}>", self.handle_right_stretch)
+        self.bind(f"<{key_down}>", self.handle_down_stretch)
 
     # Bind handlers
-    # # Arrows
-    def handle_shift_up_arrow(self, event):
+    # # Stretch
+    def handle_up_stretch(self, event):
+        self.destroy_menu()
+        self.destroy_move_menu()
+
         if self.start_y - 1 >= 0:
             self.start_y -= 1
 
         self.create_selection_rect()
 
-    def handle_shift_right_arrow(self, event):
+    def handle_right_stretch(self, event):
+        self.destroy_menu()
+        self.destroy_move_menu()
+
         canvas_width = self.canvas.winfo_width()
         if self.end_x + 1 <= canvas_width:
             self.end_x += 1
 
         self.create_selection_rect()
 
-    def handle_shift_down_arrow(self, event):
+    def handle_down_stretch(self, event):
+        self.destroy_menu()
+        self.destroy_move_menu()
+
         canvas_height = self.canvas.winfo_height()
         if self.end_y + 1 <= canvas_height:
             self.end_y += 1
 
         self.create_selection_rect()
 
-    def handle_shift_left_arrow(self, event):
+    def handle_left_stretch(self, event):
+        self.destroy_menu()
+        self.destroy_move_menu()
+
         if self.start_x - 1 >= 0:
             self.start_x -= 1
 
         self.create_selection_rect()
 
-    def handle_up_arrow(self, event):
+    def handle_up_move(self, event):
+        self.destroy_menu()
+        self.destroy_move_menu()
+
         if self.start_y - 1 >= 0:
             self.start_y -= 1
             self.end_y -= 1
 
         self.create_selection_rect()
 
-    def handle_right_arrow(self, event):
+    def handle_right_move(self, event):
+        self.destroy_menu()
+        self.destroy_move_menu()
+
         canvas_width = self.canvas.winfo_width()
         if self.end_x + 1 <= canvas_width:
             self.start_x += 1
@@ -170,7 +196,10 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.create_selection_rect()
 
-    def handle_down_arrow(self, event):
+    def handle_down_move(self, event):
+        self.destroy_menu()
+        self.destroy_move_menu()
+
         canvas_height = self.canvas.winfo_height()
         if self.end_y + 1 <= canvas_height:
             self.start_y += 1
@@ -178,7 +207,10 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.create_selection_rect()
 
-    def handle_left_arrow(self, event):
+    def handle_left_move(self, event):
+        self.destroy_menu()
+        self.destroy_move_menu()
+
         if self.start_x - 1 >= 0:
             self.start_x -= 1
             self.end_x -= 1
@@ -586,7 +618,8 @@ class ScreenWindow(ctk.CTkToplevel):
             pass
         elif value == "save":
             self.save_image()
-            self.destroy_window()
+            if not self.holding_shift_l:
+                self.destroy_window()
         elif value == "copy":
             self.copy_image()
             self.destroy_window()
