@@ -1,6 +1,7 @@
 import threading
 import time
 import tkinter
+from tkinter.filedialog import asksaveasfilename
 
 import customtkinter as ctk
 import pyautogui as pyautogui
@@ -584,7 +585,8 @@ class ScreenWindow(ctk.CTkToplevel):
         if value == "move":
             pass
         elif value == "save":
-            pass
+            self.save_image()
+            self.destroy_window()
         elif value == "copy":
             self.copy_image()
             self.destroy_window()
@@ -602,15 +604,21 @@ class ScreenWindow(ctk.CTkToplevel):
 
         selection = self.canvas.find_withtag("selection")
         self.canvas.itemconfig(selection, width=0)
+        self.attributes("-topmost", False)
+        ticks = str(time.time()).replace('.', '')[:13]
+        default_filename = f"{ticks}_screenshot.png"
+        save_path = asksaveasfilename(defaultextension='', filetypes=[("All Files", "*.*")],
+                                      initialfile=default_filename, parent=self)
 
-        def delay_and_screenshot():
+        def delay_and_screenshot(save_path):
             time.sleep(0.2)
             screenshot = pyautogui.screenshot()
             screenshot = screenshot.crop(
                 (self.start_x, self.start_y, self.start_x + width + 1, self.start_y + height + 1))
-            save_image_to_file(screenshot)
+            if save_path:
+                screenshot.save(save_path)
 
-        screenshot_thread = threading.Thread(target=delay_and_screenshot)
+        screenshot_thread = threading.Thread(target=delay_and_screenshot(save_path))
         screenshot_thread.start()
 
         self.after(100, self.create_menu_and_unbind_selection)
