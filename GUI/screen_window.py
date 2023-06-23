@@ -1,11 +1,13 @@
 import threading
 import time
+import tkinter
 from tkinter.filedialog import asksaveasfilename
 
 import customtkinter as ctk
 import pyautogui as pyautogui
-from PIL import ImageTk
+from PIL import ImageTk, Image
 
+from custom_widgets.button_group import ImageButtonGroup
 from handlers.clipboard_handler import copy_screenshot_to_clipboard
 
 
@@ -35,26 +37,16 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.focus()
 
-        self.start_x = 0
-        self.start_y = 0
-        self.end_x = 0
-        self.end_y = 0
+        self.selection_start_x = 0
+        self.selection_start_y = 0
+        self.selection_end_x = 0
+        self.selection_end_y = 0
 
         self.corner_button_max_size = 10
         self.selection_min_size = 20
 
         self.selection_rect = None
         self.buttons_menu = None
-
-        self.bottom_right_button = None
-        self.bottom_left_button = None
-        self.top_right_button = None
-        self.top_left_button = None
-        self.center_button = None
-        self.top_button = None
-        self.bottom_button = None
-        self.left_button = None
-        self.right_button = None
 
         self.selection_width = None
         self.selection_height = None
@@ -117,7 +109,8 @@ class ScreenWindow(ctk.CTkToplevel):
 
     def bind_shift_l(self, key_up: str, key_left: str, key_right: str, key_down: str):
         self.bind("<KeyPress-Shift_L>", lambda event: self.handle_stretch(event, key_up, key_left, key_right, key_down))
-        self.bind("<KeyRelease-Shift_L>", lambda event: self.handle_stretch_release(event, key_up, key_left, key_right, key_down))
+        self.bind("<KeyRelease-Shift_L>",
+                  lambda event: self.handle_stretch_release(event, key_up, key_left, key_right, key_down))
 
     def handle_stretch_release(self, event, key_up: str, key_left: str, key_right: str, key_down: str):
         self.holding_shift_l = False
@@ -141,8 +134,8 @@ class ScreenWindow(ctk.CTkToplevel):
         self.destroy_menu()
         self.destroy_move_menu()
 
-        if self.start_y - 1 >= 0:
-            self.start_y -= 1
+        if self.selection_start_y - 1 >= 0:
+            self.selection_start_y -= 1
 
         self.create_selection_rect()
 
@@ -151,8 +144,8 @@ class ScreenWindow(ctk.CTkToplevel):
         self.destroy_move_menu()
 
         canvas_width = self.canvas.winfo_width()
-        if self.end_x + 1 <= canvas_width:
-            self.end_x += 1
+        if self.selection_end_x + 1 <= canvas_width:
+            self.selection_end_x += 1
 
         self.create_selection_rect()
 
@@ -161,8 +154,8 @@ class ScreenWindow(ctk.CTkToplevel):
         self.destroy_move_menu()
 
         canvas_height = self.canvas.winfo_height()
-        if self.end_y + 1 <= canvas_height:
-            self.end_y += 1
+        if self.selection_end_y + 1 <= canvas_height:
+            self.selection_end_y += 1
 
         self.create_selection_rect()
 
@@ -170,8 +163,8 @@ class ScreenWindow(ctk.CTkToplevel):
         self.destroy_menu()
         self.destroy_move_menu()
 
-        if self.start_x - 1 >= 0:
-            self.start_x -= 1
+        if self.selection_start_x - 1 >= 0:
+            self.selection_start_x -= 1
 
         self.create_selection_rect()
 
@@ -179,9 +172,9 @@ class ScreenWindow(ctk.CTkToplevel):
         self.destroy_menu()
         self.destroy_move_menu()
 
-        if self.start_y - 1 >= 0:
-            self.start_y -= 1
-            self.end_y -= 1
+        if self.selection_start_y - 1 >= 0:
+            self.selection_start_y -= 1
+            self.selection_end_y -= 1
 
         self.create_selection_rect()
 
@@ -190,9 +183,9 @@ class ScreenWindow(ctk.CTkToplevel):
         self.destroy_move_menu()
 
         canvas_width = self.canvas.winfo_width()
-        if self.end_x + 1 <= canvas_width:
-            self.start_x += 1
-            self.end_x += 1
+        if self.selection_end_x + 1 <= canvas_width:
+            self.selection_start_x += 1
+            self.selection_end_x += 1
 
         self.create_selection_rect()
 
@@ -201,9 +194,9 @@ class ScreenWindow(ctk.CTkToplevel):
         self.destroy_move_menu()
 
         canvas_height = self.canvas.winfo_height()
-        if self.end_y + 1 <= canvas_height:
-            self.start_y += 1
-            self.end_y += 1
+        if self.selection_end_y + 1 <= canvas_height:
+            self.selection_start_y += 1
+            self.selection_end_y += 1
 
         self.create_selection_rect()
 
@@ -211,23 +204,19 @@ class ScreenWindow(ctk.CTkToplevel):
         self.destroy_menu()
         self.destroy_move_menu()
 
-        if self.start_x - 1 >= 0:
-            self.start_x -= 1
-            self.end_x -= 1
+        if self.selection_start_x - 1 >= 0:
+            self.selection_start_x -= 1
+            self.selection_end_x -= 1
 
         self.create_selection_rect()
 
     # # Dimming
-    def create_dimming_rectangle(self, event):
-        self.canvas.coords(self.dimming_rect, 0, 0, event.width, event.height)
-
-    # # Menu
     def create_menu_and_unbind_selection(self, event=None):
 
         if self.get_selection_width() < self.selection_min_size:
-            self.end_x = self.start_x + self.selection_min_size
+            self.selection_end_x = self.selection_start_x + self.selection_min_size
         if self.get_selection_height() < self.selection_min_size:
-            self.end_y = self.start_y + self.selection_min_size
+            self.selection_end_y = self.selection_start_y + self.selection_min_size
 
         self.create_menu(self)
 
@@ -242,31 +231,31 @@ class ScreenWindow(ctk.CTkToplevel):
         self.move_click_x = None
         self.move_click_y = None
 
-    # #
+    # # Menu
     def enable_mouse_selection(self, event):
         self.bind("<Button-1>", self.start_selection)
         self.bind("<B1-Motion>", self.update_selection)
 
+    # #
     def disable_mouse_selection(self, event):
         self.unbind("<Button-1>")
         self.unbind("<B1-Motion>")
         self.canvas.unbind("<B1-Motion>")
 
-    # #
     def start_selection(self, event):
         self.destroy_menu()
         self.destroy_move_menu()
 
-        self.start_x = event.x
-        self.start_y = event.y
+        self.selection_start_x = event.x
+        self.selection_start_y = event.y
 
+    # #
     def update_selection(self, event):
-        self.end_x = event.x
-        self.end_y = event.y
+        self.selection_end_x = event.x
+        self.selection_end_y = event.y
 
         self.create_selection_rect()
 
-    # #
     def create_selection_rect(self):
 
         if self.selection_rect:
@@ -274,11 +263,18 @@ class ScreenWindow(ctk.CTkToplevel):
             self.canvas.delete("dimming_rect")
 
         self.selection_rect = self.canvas.create_rectangle(
-            self.start_x, self.start_y, self.end_x, self.end_y, outline="#000000", width=1, fill="", tags="selection"
+            self.selection_start_x, self.selection_start_y, self.selection_end_x, self.selection_end_y,
+            outline="#000000", width=1, fill="", tags="selection"
         )
 
         corners_coordinates = self.get_corners_coordinates()
 
+        self.create_outside_dimming(corners_coordinates)
+
+        self.canvas.tag_raise(self.selection_rect)
+
+    # #
+    def create_outside_dimming(self, corners_coordinates: list):
         x1, y1 = corners_coordinates[0][0], corners_coordinates[0][1]
         x2, y2 = corners_coordinates[1][0], corners_coordinates[1][1]
 
@@ -295,13 +291,14 @@ class ScreenWindow(ctk.CTkToplevel):
             self.canvas.create_rectangle(
                 *dimming_rect, fill="black", stipple="gray50", outline="", tags=dimming_tags
             )
+        self.canvas.tag_raise(dimming_tags, self.selection_rect)
 
-        self.canvas.tag_lower(dimming_tags, self.selection_rect)
-        self.canvas.tag_raise(self.selection_rect)
+    def create_dimming_rectangle(self, event):
+        self.canvas.coords(self.dimming_rect, 0, 0, event.width, event.height)
 
     def get_corners_coordinates(self) -> list:
-        x1, x2 = sorted([self.start_x, self.end_x])
-        y1, y2 = sorted([self.start_y, self.end_y])
+        x1, x2 = sorted([self.selection_start_x, self.selection_end_x])
+        y1, y2 = sorted([self.selection_start_y, self.selection_end_y])
         corner1 = [x1, y1]
         corner2 = [x2, y2]
         corner3 = [x2, y1]
@@ -309,10 +306,10 @@ class ScreenWindow(ctk.CTkToplevel):
         return [corner1, corner2, corner3, corner4]
 
     def get_selection_width(self) -> int:
-        return abs(self.start_x - self.end_x)
+        return abs(self.selection_start_x - self.selection_end_x)
 
     def get_selection_height(self):
-        return abs(self.start_y - self.end_y)
+        return abs(self.selection_start_y - self.selection_end_y)
 
     # Menu
     def create_menu(self, event):
@@ -322,19 +319,25 @@ class ScreenWindow(ctk.CTkToplevel):
         self.create_selection_rect()
 
         corners_coordinates = self.get_corners_coordinates()
-        self.start_x, self.end_x = corners_coordinates[0][0], corners_coordinates[1][0]
-        self.start_y, self.end_y = corners_coordinates[0][1], corners_coordinates[1][1]
+        self.selection_start_x, self.selection_end_x = corners_coordinates[0][0], corners_coordinates[1][0]
+        self.selection_start_y, self.selection_end_y = corners_coordinates[0][1], corners_coordinates[1][1]
 
-        self.buttons_menu = ctk.CTkSegmentedButton(self, values=["move", "save", "copy"], border_width=0,
-                                                   command=self.buttons_menu_callback)
+        move_icon = Image.open("images/move-icon.jpg")
+        save_icon = Image.open("images/save-icon.png")
+        copy_icon = Image.open("images/copy-icon.png")
+        images = (move_icon, save_icon, copy_icon)
 
-        possible_positions = [(self.start_x, self.start_y - self.buttons_menu.cget("height") - 10),
-                              (self.end_x - self.buttons_menu.cget("width") - 20, self.end_y + 5),
-                              (self.end_x - self.buttons_menu.cget("width") - 22,
-                               self.start_y - self.buttons_menu.cget("height") - 9),
-                              (self.start_x, self.end_y + 5),
-                              (self.end_x - self.buttons_menu.cget("width") - 22,
-                               self.end_y - self.buttons_menu.cget("height") - 9)]
+        self.buttons_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
+                                             values=["move", "save", "copy"], images=images, fg_color="gray50",
+                                             command=self.buttons_menu_callback)
+
+        possible_positions = [(self.selection_start_x, self.selection_start_y - self.buttons_menu.cget("height") + 5),
+                              (self.selection_end_x - self.buttons_menu.cget("width"), self.selection_end_y + 5),
+                              (self.selection_end_x - self.buttons_menu.cget("width"),
+                               self.selection_start_y - self.buttons_menu.cget("height") + 5),
+                              (self.selection_start_x, self.selection_end_y + 5),
+                              (self.selection_end_x - self.buttons_menu.cget("width"),
+                               self.selection_end_y - self.buttons_menu.cget("height") + 10)]
 
         position = self.find_suitable_position(possible_positions, self.buttons_menu.cget("width"),
                                                self.buttons_menu.cget("height"))
@@ -343,8 +346,7 @@ class ScreenWindow(ctk.CTkToplevel):
         attribute_names = ["top_left_button", "bottom_right_button", "top_right_button", "bottom_left_button"]
 
         for i, (position, attribute_name) in enumerate(zip(corners_coordinates, attribute_names)):
-            button = self.create_move_button(position, "corner", button_index=i + 1)
-            setattr(self, attribute_name, button)
+            self.create_move_button(position, "corner", button_index=i + 1)
 
         attribute_names = ['top_button', 'left_button', 'bottom_button', 'right_button']
         coordinate_indices = [0, 0, 3, 2]
@@ -353,28 +355,28 @@ class ScreenWindow(ctk.CTkToplevel):
 
         for attr_name, coord_index, orientation, button_index in zip(attribute_names, coordinate_indices, orientations,
                                                                      button_indices):
-            button = self.create_move_button(corners_coordinates[coord_index], "side", side=orientation,
-                                             button_index=button_index)
-            setattr(self, attr_name, button)
+            self.create_move_button(corners_coordinates[coord_index], "side", side=orientation,
+                                    button_index=button_index)
 
-        center_position = [self.start_x + (self.end_x - self.start_x) / 2, self.end_y - (self.end_y - self.start_y) / 2]
+        center_position = [self.selection_start_x + (self.selection_end_x - self.selection_start_x) / 2,
+                           self.selection_end_y - (self.selection_end_y - self.selection_start_y) / 2]
 
-        self.center_button = self.create_move_button(center_position, "center", button_index=0)
+        self.create_move_button(center_position, "center", button_index=0)
 
     def find_suitable_position(self, possible_positions, width: int, height: int):
 
         for position in possible_positions:
             x, y = position
-            if self.check_fit(x, y, width, height):
+            if self.check_screen_fit(x, y, width, height):
                 return position
 
         return possible_positions[-1]
 
-    def check_fit(self, x: int, y: int, width: int, height: int):
+    def check_screen_fit(self, x: int, y: int, width: int, height: int):
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
 
-        return x + width <= canvas_width and y + height <= canvas_height and x >= 0 and y - height >= 0
+        return x + width <= canvas_width and y + height <= canvas_height and x >= 0 and y >= 0
 
     # # Buttons for moving/stretching the selection
     def update_bind_selection_center(self, x: int, y: int):
@@ -424,13 +426,14 @@ class ScreenWindow(ctk.CTkToplevel):
             if side == "horizontal":
                 cursor = 'sb_v_double_arrow'
                 x_offset = int(min(int(selection_width / 4), self.corner_button_max_size) +
-                               min(int((self.end_x - self.start_x) / 4), self.corner_button_max_size) / 2)
+                               min(int((self.selection_end_x - self.selection_start_x) / 4),
+                                   self.corner_button_max_size) / 2)
                 y_offset = int(min(int(selection_height / 4), self.corner_button_max_size) / 2)
 
                 x += x_offset
                 y += y_offset
-                width = int(self.end_x - self.start_x -
-                            min(int((self.end_x - self.start_x) / 4), self.corner_button_max_size))
+                width = int(self.selection_end_x - self.selection_start_x -
+                            min(int((self.selection_end_x - self.selection_start_x) / 4), self.corner_button_max_size))
                 height = min(int(selection_height / 4), self.corner_button_max_size)
             elif side == "vertical":
                 cursor = 'sb_h_double_arrow'
@@ -452,8 +455,8 @@ class ScreenWindow(ctk.CTkToplevel):
                 cursor = "size_nw_se"
             elif button_index == 3 or button_index == 4:
                 cursor = "size_ne_sw"
-            width = min(int((self.end_x - self.start_x) / 4), self.corner_button_max_size)
-            height = min(int((self.end_y - self.start_y) / 4), self.corner_button_max_size)
+            width = min(int((self.selection_end_x - self.selection_start_x) / 4), self.corner_button_max_size)
+            height = min(int((self.selection_end_y - self.selection_start_y) / 4), self.corner_button_max_size)
 
             x_offset = width / 2
             y_offset = height / 2
@@ -506,26 +509,26 @@ class ScreenWindow(ctk.CTkToplevel):
         y += self.move_click_y - int(min(int(selection_height / 4), self.corner_button_max_size) / 2)
 
         if x - self.selection_width + cursor_x >= 0 and x + self.selection_width <= canvas_width:
-            self.start_x = x - self.selection_width + cursor_x
-            self.end_x = x + cursor_x
+            self.selection_start_x = x - self.selection_width + cursor_x
+            self.selection_end_x = x + cursor_x
 
         if x - self.selection_width + cursor_x < 0:
-            self.start_x = 0
-            self.end_x = self.selection_width
+            self.selection_start_x = 0
+            self.selection_end_x = self.selection_width
         elif x + cursor_x > canvas_width:
-            self.start_x = canvas_width - self.selection_width
-            self.end_x = canvas_width
+            self.selection_start_x = canvas_width - self.selection_width
+            self.selection_end_x = canvas_width
 
         if cursor_y + y - self.selection_height >= 0 and cursor_y + y <= canvas_height:
-            self.start_y = cursor_y + y - self.selection_height
-            self.end_y = cursor_y + y
+            self.selection_start_y = cursor_y + y - self.selection_height
+            self.selection_end_y = cursor_y + y
 
         if cursor_y + y - self.selection_height < 0:
-            self.start_y = 0
-            self.end_y = self.selection_height
+            self.selection_start_y = 0
+            self.selection_end_y = self.selection_height
         elif cursor_y + y > canvas_height:
-            self.start_y = canvas_height - self.selection_height
-            self.end_y = canvas_height
+            self.selection_start_y = canvas_height - self.selection_height
+            self.selection_end_y = canvas_height
 
         self.create_selection_rect()
 
@@ -533,29 +536,29 @@ class ScreenWindow(ctk.CTkToplevel):
 
         match side:
             case 5:
-                if self.start_y <= self.end_y - self.selection_min_size:
-                    self.start_y = cursor_y
+                if self.selection_start_y <= self.selection_end_y - self.selection_min_size:
+                    self.selection_start_y = cursor_y
 
-                if self.start_y > self.end_y - self.selection_min_size:
-                    self.start_y = self.end_y - self.selection_min_size
+                if self.selection_start_y > self.selection_end_y - self.selection_min_size:
+                    self.selection_start_y = self.selection_end_y - self.selection_min_size
             case 6:
-                if self.start_x <= self.end_x - self.selection_min_size:
-                    self.start_x = cursor_x
+                if self.selection_start_x <= self.selection_end_x - self.selection_min_size:
+                    self.selection_start_x = cursor_x
 
-                if self.start_x > self.end_x - self.selection_min_size:
-                    self.start_x = self.end_x - self.selection_min_size
+                if self.selection_start_x > self.selection_end_x - self.selection_min_size:
+                    self.selection_start_x = self.selection_end_x - self.selection_min_size
             case 7:
-                if self.end_y >= self.start_y + self.selection_min_size:
-                    self.end_y = cursor_y
+                if self.selection_end_y >= self.selection_start_y + self.selection_min_size:
+                    self.selection_end_y = cursor_y
 
-                if self.end_y < self.start_y + self.selection_min_size:
-                    self.end_y = self.start_y + self.selection_min_size
+                if self.selection_end_y < self.selection_start_y + self.selection_min_size:
+                    self.selection_end_y = self.selection_start_y + self.selection_min_size
             case 8:
-                if self.end_x >= self.start_x + self.selection_min_size:
-                    self.end_x = cursor_x
+                if self.selection_end_x >= self.selection_start_x + self.selection_min_size:
+                    self.selection_end_x = cursor_x
 
-                if self.end_x < self.start_x + self.selection_min_size:
-                    self.end_x = self.start_x + self.selection_min_size
+                if self.selection_end_x < self.selection_start_x + self.selection_min_size:
+                    self.selection_end_x = self.selection_start_x + self.selection_min_size
 
         self.create_selection_rect()
 
@@ -563,53 +566,53 @@ class ScreenWindow(ctk.CTkToplevel):
 
         match corner:
             case 1:
-                if self.start_x <= self.end_x - self.selection_min_size:
-                    self.start_x = cursor_x
+                if self.selection_start_x <= self.selection_end_x - self.selection_min_size:
+                    self.selection_start_x = cursor_x
 
-                if self.start_x > self.end_x - self.selection_min_size:
-                    self.start_x = self.end_x - self.selection_min_size
+                if self.selection_start_x > self.selection_end_x - self.selection_min_size:
+                    self.selection_start_x = self.selection_end_x - self.selection_min_size
 
-                if self.start_y <= self.end_y - self.selection_min_size:
-                    self.start_y = cursor_y
+                if self.selection_start_y <= self.selection_end_y - self.selection_min_size:
+                    self.selection_start_y = cursor_y
 
-                if self.start_y > self.end_y - self.selection_min_size:
-                    self.start_y = self.end_y - self.selection_min_size
+                if self.selection_start_y > self.selection_end_y - self.selection_min_size:
+                    self.selection_start_y = self.selection_end_y - self.selection_min_size
             case 2:
-                if self.end_x >= self.start_x + self.selection_min_size:
-                    self.end_x = cursor_x
+                if self.selection_end_x >= self.selection_start_x + self.selection_min_size:
+                    self.selection_end_x = cursor_x
 
-                if self.end_x < self.start_x + self.selection_min_size:
-                    self.end_x = self.start_x + self.selection_min_size
+                if self.selection_end_x < self.selection_start_x + self.selection_min_size:
+                    self.selection_end_x = self.selection_start_x + self.selection_min_size
 
-                if self.end_y >= self.start_y + self.selection_min_size:
-                    self.end_y = cursor_y
+                if self.selection_end_y >= self.selection_start_y + self.selection_min_size:
+                    self.selection_end_y = cursor_y
 
-                if self.end_y < self.start_y + self.selection_min_size:
-                    self.end_y = self.start_y + self.selection_min_size
+                if self.selection_end_y < self.selection_start_y + self.selection_min_size:
+                    self.selection_end_y = self.selection_start_y + self.selection_min_size
             case 3:
-                if self.end_x >= self.start_x + self.selection_min_size:
-                    self.end_x = cursor_x
+                if self.selection_end_x >= self.selection_start_x + self.selection_min_size:
+                    self.selection_end_x = cursor_x
 
-                if self.end_x < self.start_x + self.selection_min_size:
-                    self.end_x = self.start_x + self.selection_min_size
+                if self.selection_end_x < self.selection_start_x + self.selection_min_size:
+                    self.selection_end_x = self.selection_start_x + self.selection_min_size
 
-                if self.start_y <= self.end_y - self.selection_min_size:
-                    self.start_y = cursor_y
+                if self.selection_start_y <= self.selection_end_y - self.selection_min_size:
+                    self.selection_start_y = cursor_y
 
-                if self.start_y > self.end_y - self.selection_min_size:
-                    self.start_y = self.end_y - self.selection_min_size
+                if self.selection_start_y > self.selection_end_y - self.selection_min_size:
+                    self.selection_start_y = self.selection_end_y - self.selection_min_size
             case 4:
-                if self.start_x <= self.end_x - self.selection_min_size:
-                    self.start_x = cursor_x
+                if self.selection_start_x <= self.selection_end_x - self.selection_min_size:
+                    self.selection_start_x = cursor_x
 
-                if self.start_x > self.end_x - self.selection_min_size:
-                    self.start_x = self.end_x - self.selection_min_size
+                if self.selection_start_x > self.selection_end_x - self.selection_min_size:
+                    self.selection_start_x = self.selection_end_x - self.selection_min_size
 
-                if self.end_y >= self.start_y + self.selection_min_size:
-                    self.end_y = cursor_y
+                if self.selection_end_y >= self.selection_start_y + self.selection_min_size:
+                    self.selection_end_y = cursor_y
 
-                if self.end_y < self.start_y + self.selection_min_size:
-                    self.end_y = self.start_y + self.selection_min_size
+                if self.selection_end_y < self.selection_start_y + self.selection_min_size:
+                    self.selection_end_y = self.selection_start_y + self.selection_min_size
 
         self.create_selection_rect()
 
@@ -617,8 +620,8 @@ class ScreenWindow(ctk.CTkToplevel):
         if value == "move":
             pass
         elif value == "save":
-            self.save_image()
-            if not self.holding_shift_l:
+            result = self.save_image()
+            if not self.holding_shift_l and result:
                 self.destroy_window()
         elif value == "copy":
             self.copy_image()
@@ -643,18 +646,18 @@ class ScreenWindow(ctk.CTkToplevel):
         save_path = asksaveasfilename(defaultextension='', filetypes=[("All Files", "*.*")],
                                       initialfile=default_filename, parent=self)
 
-        def delay_and_screenshot(save_path):
-            time.sleep(0.2)
-            screenshot = pyautogui.screenshot()
-            screenshot = screenshot.crop(
-                (self.start_x, self.start_y, self.start_x + width + 1, self.start_y + height + 1))
-            if save_path:
-                screenshot.save(save_path)
-
-        screenshot_thread = threading.Thread(target=delay_and_screenshot(save_path))
-        screenshot_thread.start()
+        time.sleep(0.2)
+        screenshot = pyautogui.screenshot()
+        screenshot = screenshot.crop(
+            (self.selection_start_x, self.selection_start_y, self.selection_start_x + width + 1,
+             self.selection_start_y + height + 1))
+        if save_path:
+            screenshot.save(save_path)
+        self.attributes("-topmost", True)
 
         self.after(100, self.create_menu_and_unbind_selection)
+
+        return True if save_path else False
 
     def copy_image(self):
         width = self.get_selection_width()
@@ -672,7 +675,8 @@ class ScreenWindow(ctk.CTkToplevel):
             time.sleep(0.2)
             screenshot = pyautogui.screenshot()
             screenshot = screenshot.crop(
-                (self.start_x, self.start_y, self.start_x + width + 1, self.start_y + height + 1))
+                (self.selection_start_x, self.selection_start_y, self.selection_start_x + width + 1,
+                 self.selection_start_y + height + 1))
             copy_screenshot_to_clipboard(screenshot)
 
         screenshot_thread = threading.Thread(target=delay_and_screenshot)
