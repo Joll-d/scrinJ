@@ -1,6 +1,5 @@
 import threading
 import time
-import tkinter
 from tkinter.filedialog import asksaveasfilename
 
 import customtkinter as ctk
@@ -45,6 +44,7 @@ class ScreenWindow(ctk.CTkToplevel):
         self.corner_button_max_size = 10
         self.selection_min_size = 20
 
+        self.current_mode = "selection"
         self.selection_rect = None
         self.buttons_menu = None
 
@@ -218,10 +218,11 @@ class ScreenWindow(ctk.CTkToplevel):
         if self.get_selection_height() < self.selection_min_size:
             self.selection_end_y = self.selection_start_y + self.selection_min_size
 
-        self.create_menu(self)
+        self.create_selection_rect()
+        self.create_menu()
+        self.create_move_menu() if self.current_mode == "selection" else self.destroy_move_menu()
 
-        self.bind("<KeyPress-Control_L>", self.enable_mouse_selection)
-        self.bind("<KeyRelease-Control_L>", self.disable_mouse_selection)
+        self.bind_control_l()
 
         self.disable_mouse_selection(self)
 
@@ -312,23 +313,31 @@ class ScreenWindow(ctk.CTkToplevel):
         return abs(self.selection_start_y - self.selection_end_y)
 
     # Menu
-    def create_menu(self, event):
+    def create_menu(self, event=None):
         self.destroy_menu()
-        self.destroy_move_menu()
-
-        self.create_selection_rect()
 
         corners_coordinates = self.get_corners_coordinates()
         self.selection_start_x, self.selection_end_x = corners_coordinates[0][0], corners_coordinates[1][0]
         self.selection_start_y, self.selection_end_y = corners_coordinates[0][1], corners_coordinates[1][1]
 
+        draw_icon = Image.open("images/draw-icon.png")
         move_icon = Image.open("images/move-icon.jpg")
+
         save_icon = Image.open("images/save-icon.png")
         copy_icon = Image.open("images/copy-icon.png")
-        images = (move_icon, save_icon, copy_icon)
+
+        images = None
+        values = None
+
+        if self.current_mode == "draw":
+            images = (move_icon, save_icon, copy_icon)
+            values = ["draw", "save", "copy"]
+        elif self.current_mode == "selection":
+            images = (draw_icon, save_icon, copy_icon)
+            values = ["move", "save", "copy"]
 
         self.buttons_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
-                                             values=["move", "save", "copy"], images=images, fg_color="gray50",
+                                             values=values, images=images, fg_color="gray50",
                                              command=self.buttons_menu_callback)
 
         possible_positions = [(self.selection_start_x, self.selection_start_y - self.buttons_menu.cget("height") + 5),
@@ -343,10 +352,19 @@ class ScreenWindow(ctk.CTkToplevel):
                                                self.buttons_menu.cget("height"))
         self.buttons_menu.place_configure(x=position[0], y=position[1])
 
+    def create_move_menu(self):
+        self.destroy_move_menu()
+
+        screenshot = pyautogui.screenshot()
+
         attribute_names = ["top_left_button", "bottom_right_button", "top_right_button", "bottom_left_button"]
 
+        corners_coordinates = self.get_corners_coordinates()
+        self.selection_start_x, self.selection_end_x = corners_coordinates[0][0], corners_coordinates[1][0]
+        self.selection_start_y, self.selection_end_y = corners_coordinates[0][1], corners_coordinates[1][1]
+
         for i, (position, attribute_name) in enumerate(zip(corners_coordinates, attribute_names)):
-            self.create_move_button(position, "corner", button_index=i + 1)
+            self.create_move_button(position, "corner", screenshot, button_index=i + 1)
 
         attribute_names = ['top_button', 'left_button', 'bottom_button', 'right_button']
         coordinate_indices = [0, 0, 3, 2]
@@ -355,13 +373,13 @@ class ScreenWindow(ctk.CTkToplevel):
 
         for attr_name, coord_index, orientation, button_index in zip(attribute_names, coordinate_indices, orientations,
                                                                      button_indices):
-            self.create_move_button(corners_coordinates[coord_index], "side", side=orientation,
+            self.create_move_button(corners_coordinates[coord_index], "side", screenshot, side=orientation,
                                     button_index=button_index)
 
-        center_position = [self.selection_start_x + (self.selection_end_x - self.selection_start_x) / 2,
-                           self.selection_end_y - (self.selection_end_y - self.selection_start_y) / 2]
+        center_position = [self.selection_start_x + self.get_selection_width() / 2,
+                           self.selection_end_y - self.get_selection_height() / 2]
 
-        self.create_move_button(center_position, "center", button_index=0)
+        self.create_move_button(center_position, "center", screenshot, button_index=0)
 
     def find_suitable_position(self, possible_positions, width: int, height: int):
 
@@ -392,7 +410,7 @@ class ScreenWindow(ctk.CTkToplevel):
         self.canvas.bind("<B1-Motion>", lambda event: self.stretch_selection_corners(event.x, event.y, corner, x, y))
         self.bind("<ButtonRelease-1>", self.create_menu_and_unbind_selection)
 
-    def create_move_button(self, position, button_type: str, side: str = None, button_index: int = None):
+    def create_move_button(self, position, button_type: str, screenshot, side: str = None, button_index: int = None):
         x = position[0]
         y = position[1]
 
@@ -461,7 +479,6 @@ class ScreenWindow(ctk.CTkToplevel):
             x_offset = width / 2
             y_offset = height / 2
 
-        screenshot = pyautogui.screenshot()
         screenshot = screenshot.crop((x - x_offset, y - y_offset, x - x_offset + width, y - y_offset + height))
         resized_screenshot = ImageTk.PhotoImage(screenshot.resize((width, height)))
 
@@ -618,7 +635,12 @@ class ScreenWindow(ctk.CTkToplevel):
 
     def buttons_menu_callback(self, value):
         if value == "move":
-            pass
+            self.current_mode = "draw"
+            self.create_menu_and_unbind_selection()
+        elif value == "draw":
+            self.current_mode = "selection"
+            self.create_menu_and_unbind_selection()
+            self.destroy_move_menu()
         elif value == "save":
             result = self.save_image()
             if not self.holding_shift_l and result:
@@ -699,7 +721,7 @@ class ScreenWindow(ctk.CTkToplevel):
                 setattr(self, attr_name, None)
 
     def destroy_move_menu(self):
-        for i in range(8):
+        for i in range(9):
             self.canvas.delete(f"button_{i}")
 
     def destroy_window(self, event=None):
