@@ -6,15 +6,24 @@ class CanvasElement(ABC):
     def __init__(
             self,
             canvas,
-            _min_size: int = 20):
+            min_size: int = 20,
+            color: hex = "#000000",
+            width: int = 1,
+            tags: str = ""):
 
-        self._min_size = _min_size
+        self._canvas = canvas
+
+        self._min_size = min_size
+        self._color = color
+        self._width = width
+        self._tags = tags
+
         self._start_x = 0
         self._start_y = 0
         self._end_x = 0
         self._end_y = 0
+
         self._element = None
-        self._canvas = canvas
 
     def set_coordinates(self, start_x: int = None, start_y: int = None, end_x: int = None, end_y: int = None):
         if start_x is not None:
@@ -47,6 +56,9 @@ class CanvasElement(ABC):
 
     def get_min_size(self) -> int:
         return self._min_size
+
+    def get_tags(self) -> str:
+        return self._tags
 
     def expand_to_minimum_size(self):
         if self.get_width() < self._min_size:

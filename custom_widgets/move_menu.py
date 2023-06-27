@@ -33,30 +33,30 @@ class MoveMenu:
         self._initial_target_height = None
         self._initial_target_width = None
 
-    def create_move_menu(self):
+    def _create_move_menu(self):
 
         corners_coordinates = self._target.get_corners_coordinates()
         self._start_x, self._end_x = corners_coordinates[0][0], corners_coordinates[1][0]
         self._start_y, self._end_y = corners_coordinates[0][1], corners_coordinates[1][1]
 
         for i, position in enumerate(corners_coordinates):
-            self.create_move_button(position, "corner", button_index=i + 1)
+            self._create_move_button(position, "corner", button_index=i + 1)
 
         coordinate_indices = [0, 0, 3, 2]
         orientations = ['horizontal', 'vertical', 'horizontal', 'vertical']
         button_indices = [5, 6, 7, 8]
 
         for coord_index, orientation, button_index in zip(coordinate_indices, orientations, button_indices):
-            self.create_move_button(corners_coordinates[coord_index], "side", side=orientation,
-                                    button_index=button_index)
+            self._create_move_button(corners_coordinates[coord_index], "side", side=orientation,
+                                     button_index=button_index)
 
         center_position = [self._start_x + self._target.get_width() / 2,
                            self._end_y - self._target.get_height() / 2]
 
-        self.create_move_button(center_position, "center", button_index=0)
+        self._create_move_button(center_position, "center", button_index=0)
 
-    def create_move_button(self, position, button_type: str, side: str = None,
-                           button_index: int = None):
+    def _create_move_button(self, position, button_type: str, side: str = None,
+                            button_index: int = None):
         x = position[0]
         y = position[1]
 
@@ -136,38 +136,38 @@ class MoveMenu:
         self._master.tag_bind(f"button_{button_index}", "<Enter>", lambda event: self._master.config(cursor=cursor))
         self._master.tag_bind(f"button_{button_index}", "<Leave>", lambda event: self._master.config(cursor=""))
         self._master.tag_bind(f"button_{button_index}", "<Button-1>",
-                              lambda event: self.bind_move_button(event, button_index, x, y))
+                              lambda event: self._bind_move_button(event, button_index, x, y))
 
         return button
 
-    def bind_move_button(self, event, button_index, x, y):
+    def _bind_move_button(self, event, button_index, x, y):
         if self._del_func() is not None:
             self._del_func()
 
         if button_index == 0:
-            self.update_bind_selection_center(x, y)
+            self._bind_center(x, y)
         elif 1 <= button_index <= 4:
-            self.update_bind_selection_corners(button_index)
+            self._bind__corners(button_index)
         elif 5 <= button_index <= 8:
-            self.update_bind_selection_side(button_index)
+            self._bind_side(button_index)
 
         self._master.tag_unbind(f"button_{button_index}", "<Leave>")
         self._master.tag_unbind(f"button_{button_index}", "<Button-1>")
 
-    def update_bind_selection_center(self, x: int, y: int):
-        self._master.bind("<B1-Motion>", lambda event: self.move(event.x, event.y, x, y))
+    def _bind_center(self, x: int, y: int):
+        self._master.bind("<B1-Motion>", lambda event: self._move(event.x, event.y, x, y))
         self._master.bind("<ButtonRelease-1>", self.create)
 
-    def update_bind_selection_side(self, side: int):
-        self._master.bind("<B1-Motion>", lambda event: self.stretch_sides(event.x, event.y, side))
+    def _bind_side(self, side: int):
+        self._master.bind("<B1-Motion>", lambda event: self._stretch_sides(event.x, event.y, side))
         self._master.bind("<ButtonRelease-1>", self.create)
 
-    def update_bind_selection_corners(self, corner: int):
+    def _bind__corners(self, corner: int):
 
-        self._master.bind("<B1-Motion>", lambda event: self.stretch_corners(event.x, event.y, corner))
+        self._master.bind("<B1-Motion>", lambda event: self._stretch_corners(event.x, event.y, corner))
         self._master.bind("<ButtonRelease-1>", self.create)
 
-    def move(self, cursor_x, cursor_y, x: int, y: int):
+    def _move(self, cursor_x, cursor_y, x: int, y: int):
         if self._initial_target_width is None:
             self._initial_target_width = self._target.get_width()
         if self._initial_target_height is None:
@@ -210,7 +210,7 @@ class MoveMenu:
         self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
         self._target.create()
 
-    def stretch_sides(self, cursor_x, cursor_y, side: int):
+    def _stretch_sides(self, cursor_x, cursor_y, side: int):
 
         match side:
             case 5:
@@ -241,7 +241,7 @@ class MoveMenu:
         self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
         self._target.create()
 
-    def stretch_corners(self, cursor_x, cursor_y, corner: int):
+    def _stretch_corners(self, cursor_x, cursor_y, corner: int):
 
         match corner:
             case 1:
@@ -304,7 +304,7 @@ class MoveMenu:
         self._target.expand_to_minimum_size()
         self._target.create()
 
-        self.create_move_menu()
+        self._create_move_menu()
 
         self._click_offset_y = None
         self._click_offset_x = None
@@ -318,7 +318,7 @@ class MoveMenu:
     def handle_up_move(self, event):
         if self._del_func() is not None:
             self._del_func()
-        self.destroy_move_menu()
+        self.destroy()
 
         if self._start_y - 1 >= 0:
             self._start_y -= 1
@@ -330,7 +330,7 @@ class MoveMenu:
     def handle_right_move(self, event):
         if self._del_func() is not None:
             self._del_func()
-        self.destroy_move_menu()
+        self.destroy()
 
         canvas_width = self._master.winfo_width()
         if self._end_x + 1 <= canvas_width:
@@ -343,7 +343,7 @@ class MoveMenu:
     def handle_down_move(self, event):
         if self._del_func() is not None:
             self._del_func()
-        self.destroy_move_menu()
+        self.destroy()
 
         canvas_height = self._master.winfo_height()
         if self._end_y + 1 <= canvas_height:
@@ -356,7 +356,7 @@ class MoveMenu:
     def handle_left_move(self, event):
         if self._del_func() is not None:
             self._del_func()
-        self.destroy_move_menu()
+        self.destroy()
 
         if self._start_x - 1 >= 0:
             self._start_x -= 1
@@ -411,9 +411,12 @@ class MoveMenu:
 
     # Destroy
 
-    def destroy_move_menu(self):
+    def destroy(self):
         for i in range(9):
             self._master.delete(f"button_{i}")
 
+    def set_target(self, target):
+        self._target = target
+
     def __del__(self):
-        self.destroy_move_menu()
+        self.destroy()

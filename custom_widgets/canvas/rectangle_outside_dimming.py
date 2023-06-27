@@ -11,7 +11,7 @@ class RectangleOutsideDimming(CanvasElement):
 
         self._element = self._canvas.create_rectangle(
             self._start_x, self._start_y, self._end_x, self._end_y,
-            outline="#000000", width=1, fill="", tags="selection"
+            outline=self._color, width=self._width, fill="", tags="selection"
         )
 
         corners_coordinates = self.get_corners_coordinates()
