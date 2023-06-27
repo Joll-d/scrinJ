@@ -155,9 +155,9 @@ class ScreenWindow(ctk.CTkToplevel):
             self.destroy_canvas_elements()
         elif self.current_mode == "draw":
             self.move_menu.destroy()
-            self.move_menu.set_limits(False)
             if self.drawing_element is not None:
                 self.move_menu.set_target(self.drawing_element)
+                self.move_menu.set_limits(False)
                 self.move_menu.create()
 
     def del_func(self):

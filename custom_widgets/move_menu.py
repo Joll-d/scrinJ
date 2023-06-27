@@ -322,12 +322,13 @@ class MoveMenu:
         self._target.create()
 
     def create(self, event=None):
-        corners_coordinates = self._target.get_corners_coordinates()
-        self._start_x, self._start_y = corners_coordinates[0][0], corners_coordinates[0][1]
-        self._end_x, self._end_y = corners_coordinates[1][0], corners_coordinates[1][1]
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
-        self._target.expand_to_minimum_size()
-        self._target.create()
+        # if self._limits:
+        #     corners_coordinates = self._target.get_corners_coordinates()
+        #     self._start_x, self._start_y = corners_coordinates[0][0], corners_coordinates[0][1]
+        #     self._end_x, self._end_y = corners_coordinates[1][0], corners_coordinates[1][1]
+        #     self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        # self._target.expand_to_minimum_size()
+        # self._target.create()
 
         self._create_move_menu()
 
@@ -454,13 +455,3 @@ class MoveMenu:
 
     def __del__(self):
         self.destroy()
-
-
-
-
-
-
-
-
-
-
