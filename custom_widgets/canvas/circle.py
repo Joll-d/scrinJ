@@ -10,7 +10,7 @@ class Circle(CanvasElement):
 
         self._element = self._canvas.create_oval(
             self._start_x, self._start_y, self._end_x, self._end_y,
-            outline=self._color, width=self._width, fill="", tags=self._tags
+            outline=self._color, width=self._width, fill="", tags=self._tags, dash=self._dash
         )
 
         self._canvas.tag_raise(self._element)

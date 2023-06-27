@@ -6,10 +6,11 @@ class CanvasElement(ABC):
     def __init__(
             self,
             canvas,
-            min_size: int = 20,
+            min_size: int = 10,
             color: hex = "#000000",
             width: int = 1,
-            tags: str = ""):
+            tags: str = "",
+            dash: tuple = ()):
 
         self._canvas = canvas
 
@@ -17,6 +18,7 @@ class CanvasElement(ABC):
         self._color = color
         self._width = width
         self._tags = tags
+        self._dash = dash
 
         self._start_x = 0
         self._start_y = 0
@@ -59,6 +61,9 @@ class CanvasElement(ABC):
 
     def get_tags(self) -> str:
         return self._tags
+
+    def destroy(self):
+        self._canvas.delete(self._element)
 
     def expand_to_minimum_size(self):
         if self.get_width() < self._min_size:

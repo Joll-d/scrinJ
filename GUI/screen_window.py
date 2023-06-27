@@ -51,7 +51,7 @@ class ScreenWindow(ctk.CTkToplevel):
         self.draw_menu = None
         self.color_picker_button = None
         self.drawing_element = None
-        self.drawing_selection = Rectangle(self.canvas, color="gray50", tags="drawing_selection")
+        self.drawing_selection = Rectangle(self.canvas, color="gray50", tags="drawing_selection", dash=(5, 3), min_size=3)
 
         self.move_menu = MoveMenu(
             self.canvas,
@@ -59,7 +59,7 @@ class ScreenWindow(ctk.CTkToplevel):
             pyautogui.screenshot(),
             corner_button_max_size=self.corner_button_max_size,
             additional_func=lambda: self.creating_menu(),
-            del_func=lambda: self.destroy_menus())
+            del_func=lambda: self.del_func())
 
         self.drawing_color = "#FF0000"
 
@@ -150,12 +150,19 @@ class ScreenWindow(ctk.CTkToplevel):
         self.creating_menu()
         if self.current_mode == "selection":
             self.move_menu.set_target(self.selection_rect)
+            self.move_menu.set_limits(True)
             self.move_menu.create()
+            self.destroy_canvas_elements()
         elif self.current_mode == "draw":
             self.move_menu.destroy()
+            self.move_menu.set_limits(False)
             if self.drawing_element is not None:
                 self.move_menu.set_target(self.drawing_element)
                 self.move_menu.create()
+
+    def del_func(self):
+        self.destroy_menus()
+        self.destroy_canvas_elements()
 
     def creating_menu(self):
         self.main_menu_position = self.create_menu()
@@ -163,6 +170,11 @@ class ScreenWindow(ctk.CTkToplevel):
         if self.current_mode == "draw":
             self.create_color_picker_menu(self.main_menu_position)
             self.create_draw_menu(self.main_menu_position)
+            if self.drawing_element is not None:
+                corners = self.drawing_element.get_corners_coordinates()
+                self.drawing_selection.set_coordinates(start_x=corners[0][0], start_y=corners[0][1],
+                                                       end_x=corners[1][0], end_y=corners[1][1])
+                self.drawing_selection.create()
 
         self.bind_control_l()
         self.disable_mouse_selection()
@@ -196,8 +208,8 @@ class ScreenWindow(ctk.CTkToplevel):
 
     def update_draw(self, event):
         self.drawing_element.set_coordinates(end_x=event.x, end_y=event.y)
-        self.drawing_selection.set_coordinates(end_x=event.x, end_y=event.y)
         self.drawing_element.create()
+        self.drawing_selection.set_coordinates(end_x=event.x, end_y=event.y)
         self.drawing_selection.create()
         self.canvas.tag_raise(self.drawing_selection.get_tags())
         self.canvas.tag_raise(self.drawing_element.get_tags())
@@ -338,11 +350,11 @@ class ScreenWindow(ctk.CTkToplevel):
     def draw_menu_callback(self, value):
         self.bind_draw_mouse_events()
         if value == "line":
-            self.drawing_element = Line(self.canvas, color=self.drawing_color, width=2, tags="line")
+            self.drawing_element = Line(self.canvas, color=self.drawing_color, width=2, tags="line", min_size=1)
         elif value == "rectangle":
-            self.drawing_element = Rectangle(self.canvas, color=self.drawing_color, width=2, tags="rectangle")
+            self.drawing_element = Rectangle(self.canvas, color=self.drawing_color, width=2, tags="rectangle", min_size=1)
         elif value == "circle":
-            self.drawing_element = Circle(self.canvas, color=self.drawing_color, width=2, tags="circle")
+            self.drawing_element = Circle(self.canvas, color=self.drawing_color, width=2, tags="circle", min_size=1)
 
     #
 
@@ -358,6 +370,7 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.move_menu.destroy()
         self.destroy_menus()
+        self.destroy_canvas_elements()
 
         selection = self.canvas.find_withtag("selection")
         self.canvas.itemconfig(selection, width=0)
@@ -390,6 +403,7 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.move_menu.destroy()
         self.destroy_menus()
+        self.destroy_canvas_elements()
 
         selection = self.canvas.find_withtag("selection")
         self.canvas.itemconfig(selection, width=0)
@@ -413,6 +427,12 @@ class ScreenWindow(ctk.CTkToplevel):
             if item is not None:
                 item.destroy()
                 setattr(self, attr_name, None)
+
+    def destroy_canvas_elements(self):
+        items_to_destroy = [self.drawing_selection]
+        for item in items_to_destroy:
+            if item is not None:
+                item.destroy()
 
     def destroy_color_picker_menu(self):
         items_to_destroy = {

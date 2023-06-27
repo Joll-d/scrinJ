@@ -10,7 +10,7 @@ class Line(CanvasElement):
 
         self._element = self._canvas.create_line(
             self._start_x, self._start_y, self._end_x, self._end_y,
-            fill=self._color, width=self._width, tags=self._tags
+            fill=self._color, width=self._width, tags=self._tags, dash=self._dash
         )
 
         self._canvas.tag_raise(self._element)
