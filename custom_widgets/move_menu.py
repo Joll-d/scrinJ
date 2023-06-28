@@ -36,9 +36,12 @@ class MoveMenu:
         self._initial_target_height = None
         self._initial_target_width = None
 
-    def _create_symmetrical_move_menu(self):
+    def _create_move_menu(self):
 
-        corners_coordinates = self._target.get_corners_coordinates()
+        if self._target_symmetry:
+            corners_coordinates = self._target.get_corners_coordinates()
+        else:
+            corners_coordinates = self._target.get_current_corners_coordinates()
         self._start_x[0], self._end_x[0] = corners_coordinates[0][0], corners_coordinates[1][0]
         self._start_y[0], self._end_y[0] = corners_coordinates[0][1], corners_coordinates[1][1]
 
@@ -49,135 +52,31 @@ class MoveMenu:
             self._create_move_button(position, "corner", button_index=i + 1)
 
         if self._target.get_width() > 5 and self._target.get_height() > 5:
-            coordinate_indices = [0, 0, 3, 2]
+            if self._target_symmetry:
+                coordinate_indices = [0, 0, 3, 2]
+                button_indices = [5, 6, 7, 8]
+            else:
+                corners_coordinates = self._target.get_corners_coordinates()
+                if self._start_x[0] < self._end_x[0]:
+                    coordinate_indices = [0, 0, 3, 2]
+                    button_indices = [5, 6, 7, 8]
+                else:
+                    coordinate_indices = [3, 0, 0, 2]
+                    button_indices = [7, 6, 5, 8]
             orientations = ['horizontal', 'vertical', 'horizontal', 'vertical']
-            button_indices = [5, 6, 7, 8]
 
             for coord_index, orientation, button_index in zip(coordinate_indices, orientations, button_indices):
                 self._create_move_button(corners_coordinates[coord_index], "side", side=orientation,
                                          button_index=button_index)
 
-        center_position = [self._start_x[0] + self._target.get_width() / 2,
-                           self._end_y[0] - self._target.get_height() / 2]
-        self._create_move_button(center_position, "center", button_index=0)
-
-    def _create_unsymmetrical_move_menu(self):
-
-        corners_coordinates = self._target.get_current_corners_coordinates()
-        self._start_x[0], self._end_x[0] = corners_coordinates[0][0], corners_coordinates[1][0]
-        self._start_y[0], self._end_y[0] = corners_coordinates[0][1], corners_coordinates[1][1]
-
-        if self._target.get_width() <= 5 or self._target.get_height() <= 5:
-            corners_coordinates = corners_coordinates[:2]
-
-        for i, position in enumerate(corners_coordinates):
-            self._create_unsymmetrical_move_button(position, "corner", button_index=i + 1)
-
-        if self._target.get_width() > 5 and self._target.get_height() > 5:
+        if self._target_symmetry:
+            center_position = [self._start_x[0] + self._target.get_width() / 2,
+                               self._end_y[0] - self._target.get_height() / 2]
+        else:
             corners_coordinates = self._target.get_corners_coordinates()
-            if self._start_x[0] < self._end_x[0]:
-                coordinate_indices = [0, 0, 3, 2]
-                button_indices = [5, 6, 7, 8]
-            else:
-                coordinate_indices = [3, 0, 0, 2]
-                button_indices = [7, 6, 5, 8]
-            orientations = ['horizontal', 'vertical', 'horizontal', 'vertical']
+            center_position = [corners_coordinates[0][0], corners_coordinates[0][1]]
 
-            for coord_index, orientation, button_index in zip(coordinate_indices, orientations, button_indices):
-                self._create_unsymmetrical_move_button(corners_coordinates[coord_index], "side", side=orientation,
-                                                       button_index=button_index)
-
-        corners_coordinates = self._target.get_corners_coordinates()
-
-        center_position = [corners_coordinates[0][0], corners_coordinates[0][1]]
-        self._create_unsymmetrical_move_button(center_position, "center", button_index=0)
-
-    def _create_unsymmetrical_move_button(self, position, button_type: str, side: str = None,
-                                          button_index: int = None):
-        x = position[0]
-        y = position[1]
-
-        target_width = self._target.get_width()
-        target_height = self._target.get_height()
-
-        width = height = x_offset = y_offset = 0
-
-        cursor = None
-
-        if button_type == "center":
-            cursor = "size"
-
-            x_offset = int(min(int(target_width / 4), self._corner_button_max_size) / 2)
-            y_offset = int(min(int(target_height / 4), self._corner_button_max_size) / 2)
-
-            x += x_offset
-            y += y_offset
-            width = int(target_width - (x_offset * 2))
-            height = int(target_height - (y_offset * 2))
-
-        elif button_type == "side":
-            if side == "horizontal":
-                cursor = 'sb_v_double_arrow'
-
-                x_offset = int(min(int(target_width / 4), self._corner_button_max_size) +
-                               min(int(target_width / 4), self._corner_button_max_size) / 2)
-                y_offset = int(min(int(target_height / 4), self._corner_button_max_size) / 2)
-
-                x += x_offset
-                y += y_offset
-
-                width = int(target_width - min(int(target_width / 4), self._corner_button_max_size))
-                height = min(int(target_height / 4), self._corner_button_max_size)
-
-            elif side == "vertical":
-                cursor = 'sb_h_double_arrow'
-
-                x_offset = int(min(int(target_width / 4), self._corner_button_max_size) -
-                               min(int(target_width / 4), self._corner_button_max_size) / 2)
-                y_offset = int(min(int(target_height / 4), self._corner_button_max_size) +
-                               min(int(target_height / 4), self._corner_button_max_size) / 2)
-
-                x += x_offset
-                y += y_offset
-
-                width = int(min(int(target_width / 4), self._corner_button_max_size))
-                height = int(target_height - min(int(target_height / 4), self._corner_button_max_size))
-
-            x_offset = min(int(target_width / 4), self._corner_button_max_size)
-            y_offset = min(int(target_height / 4), self._corner_button_max_size)
-        elif button_type == "corner":
-            if button_index == 1 or button_index == 2:
-                print(x, y, button_index)
-                cursor = "size_nw_se"
-            elif button_index == 3 or button_index == 4:
-                cursor = "size_ne_sw"
-            width = min(int(abs(self._end_x[0] - self._start_x[0]) / 4), self._corner_button_max_size)
-            height = min(int(abs(self._end_y[0] - self._start_y[0]) / 4), self._corner_button_max_size)
-
-            x_offset = width / 2
-            y_offset = height / 2
-
-        if width <= 5:
-            width = 5
-            x -= 2
-
-        if height <= 5:
-            height = 5
-            y -= 2
-
-        screenshot = self._screenshot.crop((x - x_offset, y - y_offset, x - x_offset + width, y - y_offset + height))
-        resized_screenshot = ImageTk.PhotoImage(screenshot.resize((width, height)))
-
-        button = self._master.create_image(
-            x - x_offset, y - y_offset, image=resized_screenshot, tags=f"button_{button_index}", anchor="nw"
-        )
-
-        self._master.tag_bind(f"button_{button_index}", "<Enter>", lambda event: self._master.config(cursor=cursor))
-        self._master.tag_bind(f"button_{button_index}", "<Leave>", lambda event: self._master.config(cursor=""))
-        self._master.tag_bind(f"button_{button_index}", "<Button-1>",
-                              lambda event: self._bind_move_button(event, button_index, x, y))
-
-        return button
+        self._create_move_button(center_position, "center", button_index=0)
 
     def _create_move_button(self, position, button_type: str, side: str = None,
                             button_index: int = None):
@@ -202,24 +101,26 @@ class MoveMenu:
             width = int(target_width - (x_offset * 2))
             height = int(target_height - (y_offset * 2))
 
-            x_offset = target_width / 2
-            y_offset = target_height / 2
+            if self._target_symmetry:
+                x_offset = target_width / 2
+                y_offset = target_height / 2
         elif button_type == "side":
             if side == "horizontal":
                 cursor = 'sb_v_double_arrow'
+
                 x_offset = int(min(int(target_width / 4), self._corner_button_max_size) +
-                               min(int((self._end_x[0] - self._start_x[0]) / 4),
-                                   self._corner_button_max_size) / 2)
+                               min(int(target_width / 4), self._corner_button_max_size) / 2)
                 y_offset = int(min(int(target_height / 4), self._corner_button_max_size) / 2)
 
                 x += x_offset
                 y += y_offset
-                width = int(self._end_x[0] - self._start_x[0] -
-                            min(int((self._end_x[0] - self._start_x[0]) / 4),
-                                self._corner_button_max_size))
+
+                width = width = int(target_width - min(int(target_width / 4), self._corner_button_max_size))
                 height = min(int(target_height / 4), self._corner_button_max_size)
+
             elif side == "vertical":
                 cursor = 'sb_h_double_arrow'
+
                 x_offset = int(min(int(target_width / 4), self._corner_button_max_size) -
                                min(int(target_width / 4), self._corner_button_max_size) / 2)
                 y_offset = int(min(int(target_height / 4), self._corner_button_max_size) +
@@ -238,8 +139,8 @@ class MoveMenu:
                 cursor = "size_nw_se"
             elif button_index == 3 or button_index == 4:
                 cursor = "size_ne_sw"
-            width = min(int((self._end_x[0] - self._start_x[0]) / 4), self._corner_button_max_size)
-            height = min(int((self._end_y[0] - self._start_y[0]) / 4), self._corner_button_max_size)
+            width = min(int(target_width / 4), self._corner_button_max_size)
+            height = min(int(target_height / 4), self._corner_button_max_size)
 
             x_offset = width / 2
             y_offset = height / 2
@@ -254,6 +155,7 @@ class MoveMenu:
 
         screenshot = self._screenshot.crop((x - x_offset, y - y_offset, x - x_offset + width, y - y_offset + height))
         resized_screenshot = ImageTk.PhotoImage(screenshot.resize((width, height)))
+
         button = self._master.create_image(
             x - x_offset, y - y_offset, image=resized_screenshot, tags=f"button_{button_index}", anchor="nw"
         )
@@ -354,57 +256,57 @@ class MoveMenu:
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
+    def _stretch_top_side(self, top_y, bottom_y, side_y):
+        if top_y[0] <= bottom_y[0] - self._target_min_size and side_y >= 0:
+            top_y[0] = side_y
+
+        if top_y[0] > bottom_y[0] - self._target_min_size:
+            top_y[0] = bottom_y[0] - self._target_min_size
+
+    def _stretch_bottom_side(self, top_y, bottom_y, side_y):
+        if bottom_y[0] >= top_y[0] + self._target_min_size and side_y <= self._master.winfo_height():
+            bottom_y[0] = side_y
+
+        if bottom_y[0] < top_y[0] + self._target_min_size:
+            bottom_y[0] = top_y[0] + self._target_min_size
+
+    def _stretch_left_side(self, left_x, right_x, side_x):
+        if left_x[0] <= right_x[0] - self._target_min_size and side_x >= 0:
+            left_x[0] = side_x
+
+        if left_x[0] > right_x[0] - self._target_min_size:
+            left_x[0] = right_x[0] - self._target_min_size
+
+    def _stretch_right_side(self, left_x, right_x, side_x):
+        if right_x[0] >= left_x[0] + self._target_min_size and side_x <= self._master.winfo_width():
+            right_x[0] = side_x
+
+        if right_x[0] < left_x[0] + self._target_min_size:
+            right_x[0] = left_x[0] + self._target_min_size
+
     def _stretch_sides(self, cursor_x, cursor_y, side: int):
-
-        def _stretch_top_side(top_y, bottom_y):
-            if top_y[0] <= bottom_y[0] - self._target_min_size:
-                top_y[0] = cursor_y
-
-            if top_y[0] > bottom_y[0] - self._target_min_size:
-                top_y[0] = bottom_y[0] - self._target_min_size
-
-        def _stretch_bottom_side(top_y, bottom_y):
-            if bottom_y[0] >= top_y[0] + self._target_min_size:
-                bottom_y[0] = cursor_y
-
-            if bottom_y[0] < top_y[0] + self._target_min_size:
-                bottom_y[0] = top_y[0] + self._target_min_size
-
-        def _stretch_left_side(left_x, right_x):
-            if left_x[0] <= right_x[0] - self._target_min_size:
-                left_x[0] = cursor_x
-
-            if left_x[0] > right_x[0] - self._target_min_size:
-                left_x[0] = right_x[0] - self._target_min_size
-
-        def _stretch_right_side(left_x, right_x):
-            if right_x[0] >= left_x[0] + self._target_min_size:
-                right_x[0] = cursor_x
-
-            if right_x[0] < left_x[0] + self._target_min_size:
-                right_x[0] = left_x[0] + self._target_min_size
 
         match side:
             case 5:
                 if self._start_y[0] < self._end_y[0]:
-                    _stretch_top_side(self._start_y, self._end_y)
+                    self._stretch_top_side(self._start_y, self._end_y, cursor_y)
                 else:
-                    _stretch_top_side(self._end_y, self._start_y)
+                    self._stretch_top_side(self._end_y, self._start_y, cursor_y)
             case 6:
                 if self._start_x[0] < self._end_x[0]:
-                    _stretch_left_side(self._start_x, self._end_x)
+                    self._stretch_left_side(self._start_x, self._end_x, cursor_x)
                 else:
-                    _stretch_left_side(self._end_x, self._start_x)
+                    self._stretch_left_side(self._end_x, self._start_x, cursor_x)
             case 7:
                 if self._start_y[0] < self._end_y[0]:
-                    _stretch_bottom_side(self._start_y, self._end_y)
+                    self._stretch_bottom_side(self._start_y, self._end_y, cursor_y)
                 else:
-                    _stretch_bottom_side(self._end_y, self._start_y)
+                    self._stretch_bottom_side(self._end_y, self._start_y, cursor_y)
             case 8:
                 if self._start_x[0] < self._end_x[0]:
-                    _stretch_right_side(self._start_x, self._end_x)
+                    self._stretch_right_side(self._start_x, self._end_x, cursor_x)
                 else:
-                    _stretch_right_side(self._end_x, self._start_x)
+                    self._stretch_right_side(self._end_x, self._start_x, cursor_x)
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
@@ -481,10 +383,7 @@ class MoveMenu:
         self._target.create()
 
     def create(self, event=None):
-        if self._target_symmetry:
-            self._create_symmetrical_move_menu()
-        else:
-            self._create_unsymmetrical_move_menu()
+        self._create_move_menu()
 
         self._click_offset_y = None
         self._click_offset_x = None
@@ -496,97 +395,102 @@ class MoveMenu:
 
         self.menu_tag_rise()
 
-    def handle_up_move(self, event):
+    def handle_up_move(self, event, offset: int = 1):
         if self._del_func() is not None:
             self._del_func()
         self.destroy()
 
-        if self._start_y[0] - 1 >= 0:
-            self._start_y[0] -= 1
-            self._end_y[0] -= 1
+        if self._start_y[0] - offset >= 0:
+            self._start_y[0] -= offset
+            self._end_y[0] -= offset
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     # Move
-    def handle_right_move(self, event):
+    def handle_right_move(self, event, offset: int = 1):
         if self._del_func() is not None:
             self._del_func()
         self.destroy()
 
         canvas_width = self._master.winfo_width()
-        if self._end_x[0] + 1 <= canvas_width:
-            self._start_x[0] += 1
-            self._end_x[0] += 1
+        if self._end_x[0] + offset <= canvas_width:
+            self._start_x[0] += offset
+            self._end_x[0] += offset
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
-    def handle_down_move(self, event):
+    def handle_down_move(self, event, offset: int = 1):
         if self._del_func() is not None:
             self._del_func()
         self.destroy()
 
         canvas_height = self._master.winfo_height()
-        if self._end_y[0] + 1 <= canvas_height:
-            self._start_y[0] += 1
-            self._end_y[0] += 1
+        if self._end_y[0] + offset <= canvas_height:
+            self._start_y[0] += offset
+            self._end_y[0] += offset
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
-    def handle_left_move(self, event):
+    def handle_left_move(self, event, offset: int = 1):
         if self._del_func() is not None:
             self._del_func()
         self.destroy()
 
-        if self._start_x[0] - 1 >= 0:
-            self._start_x[0] -= 1
-            self._end_x[0] -= 1
-
-        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
-        self._target.create()
-
-    def handle_up_stretch(self, event):
-        if self._del_func() is not None:
-            self._del_func()
-
-        if self._start_y[0] - 1 >= 0:
-            self._start_y[0] -= 1
+        if self._start_x[0] - offset >= 0:
+            self._start_x[0] -= offset
+            self._end_x[0] -= offset
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     # Stretch
-
-    def handle_right_stretch(self, event):
+    def handle_up_stretch(self, event, offset: int = 1):
         if self._del_func() is not None:
             self._del_func()
 
-        canvas_width = self._master.winfo_width()
-        if self._end_x[0] + 1 <= canvas_width:
-            self._end_x[0] += 1
+        if self._start_y[0] < self._end_y[0]:
+            self._stretch_top_side(self._start_y, self._end_y, self._start_y[0] - offset)
+        else:
+            self._stretch_top_side(self._end_y, self._start_y, self._end_y[0] - offset)
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
-    def handle_down_stretch(self, event):
+    def handle_right_stretch(self, event, offset: int = 1):
         if self._del_func() is not None:
             self._del_func()
 
-        canvas_height = self._master.winfo_height()
-        if self._end_y[0] + 1 <= canvas_height:
-            self._end_y[0] += 1
+        if self._start_x[0] < self._end_x[0]:
+            self._stretch_right_side(self._start_x, self._end_x, self._end_x[0] + offset)
+        else:
+            self._stretch_right_side(self._end_x, self._start_x, self._start_x[0] + offset)
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
-    def handle_left_stretch(self, event):
+    def handle_down_stretch(self, event, offset: int = 1):
         if self._del_func() is not None:
             self._del_func()
 
-        if self._start_x[0] - 1 >= 0:
-            self._start_x[0] -= 1
+        if self._start_y[0] < self._end_y[0]:
+            self._stretch_bottom_side(self._start_y, self._end_y, self._end_y[0] + offset)
+        else:
+            self._stretch_bottom_side(self._end_y, self._start_y, self._start_y[0] + offset)
+
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
+        self._target.create()
+
+    def handle_left_stretch(self, event, offset: int = 1):
+        if self._del_func() is not None:
+            self._del_func()
+
+        if self._start_x[0] < self._end_x[0]:
+            self._stretch_left_side(self._start_x, self._end_x, self._start_x[0] - offset)
+        else:
+            self._stretch_left_side(self._end_x, self._start_x, self._end_x[0] - offset)
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
