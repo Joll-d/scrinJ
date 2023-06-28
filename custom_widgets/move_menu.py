@@ -69,12 +69,8 @@ class MoveMenu:
                 self._create_move_button(corners_coordinates[coord_index], "side", side=orientation,
                                          button_index=button_index)
 
-        if self._target_symmetry:
-            center_position = [self._start_x[0] + self._target.get_width() / 2,
-                               self._end_y[0] - self._target.get_height() / 2]
-        else:
-            corners_coordinates = self._target.get_corners_coordinates()
-            center_position = [corners_coordinates[0][0], corners_coordinates[0][1]]
+        corners_coordinates = self._target.get_corners_coordinates()
+        center_position = [corners_coordinates[0][0], corners_coordinates[0][1]]
 
         self._create_move_button(center_position, "center", button_index=0)
 
@@ -101,9 +97,6 @@ class MoveMenu:
             width = int(target_width - (x_offset * 2))
             height = int(target_height - (y_offset * 2))
 
-            if self._target_symmetry:
-                x_offset = target_width / 2
-                y_offset = target_height / 2
         elif button_type == "side":
             if side == "horizontal":
                 cursor = 'sb_v_double_arrow'
@@ -115,7 +108,7 @@ class MoveMenu:
                 x += x_offset
                 y += y_offset
 
-                width = width = int(target_width - min(int(target_width / 4), self._corner_button_max_size))
+                width = int(target_width - min(int(target_width / 4), self._corner_button_max_size))
                 height = min(int(target_height / 4), self._corner_button_max_size)
 
             elif side == "vertical":
@@ -215,9 +208,8 @@ class MoveMenu:
         x += self._click_offset_x - int(min(int(target_width / 4), self._corner_button_max_size) / 2)
         y += self._click_offset_y - int(min(int(target_height / 4), self._corner_button_max_size) / 2)
 
-        if not self._target_symmetry:
-            x += self._initial_target_width / 2
-            y += self._initial_target_height / 2
+        x += self._initial_target_width / 2
+        y += self._initial_target_height / 2
 
         def update_x_position(left_x, right_x):
             if x - self._initial_target_width + cursor_x >= 0 and x + self._initial_target_width <= canvas_width:
