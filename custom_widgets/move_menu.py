@@ -22,10 +22,10 @@ class MoveMenu:
         self._del_func = del_func
         self._limits = limits
 
-        self._end_y = 0
-        self._end_x = 0
-        self._start_y = 0
-        self._start_x = 0
+        self._end_y = [0]
+        self._end_x = [0]
+        self._start_y = [0]
+        self._start_x = [0]
 
         self._target = target
         self._master = master
@@ -39,8 +39,8 @@ class MoveMenu:
     def _create_symmetrical_move_menu(self):
 
         corners_coordinates = self._target.get_corners_coordinates()
-        self._start_x, self._end_x = corners_coordinates[0][0], corners_coordinates[1][0]
-        self._start_y, self._end_y = corners_coordinates[0][1], corners_coordinates[1][1]
+        self._start_x[0], self._end_x[0] = corners_coordinates[0][0], corners_coordinates[1][0]
+        self._start_y[0], self._end_y[0] = corners_coordinates[0][1], corners_coordinates[1][1]
 
         if self._target.get_width() <= 5 or self._target.get_height() <= 5:
             corners_coordinates = corners_coordinates[:2]
@@ -57,15 +57,15 @@ class MoveMenu:
                 self._create_move_button(corners_coordinates[coord_index], "side", side=orientation,
                                          button_index=button_index)
 
-        center_position = [self._start_x + self._target.get_width() / 2,
-                           self._end_y - self._target.get_height() / 2]
+        center_position = [self._start_x[0] + self._target.get_width() / 2,
+                           self._end_y[0] - self._target.get_height() / 2]
         self._create_move_button(center_position, "center", button_index=0)
 
     def _create_unsymmetrical_move_menu(self):
 
         corners_coordinates = self._target.get_current_corners_coordinates()
-        self._start_x, self._end_x = corners_coordinates[0][0], corners_coordinates[1][0]
-        self._start_y, self._end_y = corners_coordinates[0][1], corners_coordinates[1][1]
+        self._start_x[0], self._end_x[0] = corners_coordinates[0][0], corners_coordinates[1][0]
+        self._start_y[0], self._end_y[0] = corners_coordinates[0][1], corners_coordinates[1][1]
 
         if self._target.get_width() <= 5 or self._target.get_height() <= 5:
             corners_coordinates = corners_coordinates[:2]
@@ -115,14 +115,14 @@ class MoveMenu:
             if side == "horizontal":
                 cursor = 'sb_v_double_arrow'
                 x_offset = int(min(int(target_width / 4), self._corner_button_max_size) +
-                               min(int((self._end_x - self._start_x) / 4),
+                               min(int((self._end_x[0] - self._start_x[0]) / 4),
                                    self._corner_button_max_size) / 2)
                 y_offset = int(min(int(target_height / 4), self._corner_button_max_size) / 2)
 
                 x += x_offset
                 y += y_offset
-                width = int(self._end_x - self._start_x -
-                            min(int((self._end_x - self._start_x) / 4),
+                width = int(self._end_x[0] - self._start_x[0] -
+                            min(int((self._end_x[0] - self._start_x[0]) / 4),
                                 self._corner_button_max_size))
                 height = min(int(target_height / 4), self._corner_button_max_size)
             elif side == "vertical":
@@ -145,8 +145,8 @@ class MoveMenu:
                 cursor = "size_nw_se"
             elif button_index == 3 or button_index == 4:
                 cursor = "size_ne_sw"
-            width = min(int(abs(self._end_x - self._start_x) / 4), self._corner_button_max_size)
-            height = min(int(abs(self._end_y - self._start_y) / 4), self._corner_button_max_size)
+            width = min(int(abs(self._end_x[0] - self._start_x[0]) / 4), self._corner_button_max_size)
+            height = min(int(abs(self._end_y[0] - self._start_y[0]) / 4), self._corner_button_max_size)
 
             x_offset = width / 2
             y_offset = height / 2
@@ -202,14 +202,14 @@ class MoveMenu:
             if side == "horizontal":
                 cursor = 'sb_v_double_arrow'
                 x_offset = int(min(int(target_width / 4), self._corner_button_max_size) +
-                               min(int((self._end_x - self._start_x) / 4),
+                               min(int((self._end_x[0] - self._start_x[0]) / 4),
                                    self._corner_button_max_size) / 2)
                 y_offset = int(min(int(target_height / 4), self._corner_button_max_size) / 2)
 
                 x += x_offset
                 y += y_offset
-                width = int(self._end_x - self._start_x -
-                            min(int((self._end_x - self._start_x) / 4),
+                width = int(self._end_x[0] - self._start_x[0] -
+                            min(int((self._end_x[0] - self._start_x[0]) / 4),
                                 self._corner_button_max_size))
                 height = min(int(target_height / 4), self._corner_button_max_size)
             elif side == "vertical":
@@ -232,8 +232,8 @@ class MoveMenu:
                 cursor = "size_nw_se"
             elif button_index == 3 or button_index == 4:
                 cursor = "size_ne_sw"
-            width = min(int((self._end_x - self._start_x) / 4), self._corner_button_max_size)
-            height = min(int((self._end_y - self._start_y) / 4), self._corner_button_max_size)
+            width = min(int((self._end_x[0] - self._start_x[0]) / 4), self._corner_button_max_size)
+            height = min(int((self._end_y[0] - self._start_y[0]) / 4), self._corner_button_max_size)
 
             x_offset = width / 2
             y_offset = height / 2
@@ -312,101 +312,107 @@ class MoveMenu:
             y += self._initial_target_height / 2
 
         if x - self._initial_target_width + cursor_x >= 0 and x + self._initial_target_width <= canvas_width:
-            if self._start_x < self._end_x:
-                self._start_x = x - self._initial_target_width + cursor_x
-                self._end_x = x + cursor_x
+            if self._start_x[0] < self._end_x[0]:
+                self._start_x[0] = x - self._initial_target_width + cursor_x
+                self._end_x[0] = x + cursor_x
             else:
-                self._start_x = x + cursor_x
-                self._end_x = x - self._initial_target_width + cursor_x
+                self._start_x[0] = x + cursor_x
+                self._end_x[0] = x - self._initial_target_width + cursor_x
 
         if x - self._initial_target_width + cursor_x < 0:
-            if self._start_x < self._end_x:
-                self._start_x = 0
-                self._end_x = self._initial_target_width
+            if self._start_x[0] < self._end_x[0]:
+                self._start_x[0] = 0
+                self._end_x[0] = self._initial_target_width
             else:
-                self._start_x = self._initial_target_width
-                self._end_x = 0
+                self._start_x[0] = self._initial_target_width
+                self._end_x[0] = 0
         elif x + cursor_x > canvas_width:
-            if self._start_x < self._end_x:
-                self._start_x = canvas_width - self._initial_target_width
-                self._end_x = canvas_width
+            if self._start_x[0] < self._end_x[0]:
+                self._start_x[0] = canvas_width - self._initial_target_width
+                self._end_x[0] = canvas_width
             else:
-                self._start_x = canvas_width
-                self._end_x = canvas_width - self._initial_target_width
+                self._start_x[0] = canvas_width
+                self._end_x[0] = canvas_width - self._initial_target_width
 
         if cursor_y + y - self._initial_target_height >= 0 and cursor_y + y <= canvas_height:
-            if self._start_y < self._end_y:
-                self._start_y = cursor_y + y - self._initial_target_height
-                self._end_y = cursor_y + y
+            if self._start_y[0] < self._end_y[0]:
+                self._start_y[0] = cursor_y + y - self._initial_target_height
+                self._end_y[0] = cursor_y + y
             else:
-                self._start_y = cursor_y + y
-                self._end_y = cursor_y + y - self._initial_target_height
+                self._start_y[0] = cursor_y + y
+                self._end_y[0] = cursor_y + y - self._initial_target_height
 
         if cursor_y + y - self._initial_target_height < 0:
-            if self._start_y < self._end_y:
-                self._start_y = 0
-                self._end_y = self._initial_target_height
+            if self._start_y[0] < self._end_y[0]:
+                self._start_y[0] = 0
+                self._end_y[0] = self._initial_target_height
             else:
-                self._start_y = self._initial_target_height
-                self._end_y = 0
+                self._start_y[0] = self._initial_target_height
+                self._end_y[0] = 0
         elif cursor_y + y > canvas_height:
-            if self._start_y < self._end_y:
-                self._start_y = canvas_height - self._initial_target_height
-                self._end_y = canvas_height
+            if self._start_y[0] < self._end_y[0]:
+                self._start_y[0] = canvas_height - self._initial_target_height
+                self._end_y[0] = canvas_height
             else:
-                self._start_y = canvas_height
-                self._end_y = canvas_height - self._initial_target_height
+                self._start_y[0] = canvas_height
+                self._end_y[0] = canvas_height - self._initial_target_height
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def _stretch_sides(self, cursor_x, cursor_y, side: int):
 
-        def _stretch_top_side():
-            if self._start_y <= self._end_y - self._target_min_size:
-                self._start_y = cursor_y
+        def _stretch_top_side(top_y, bottom_y):
+            if top_y[0] <= bottom_y[0] - self._target_min_size:
+                top_y[0] = cursor_y
 
-            if self._start_y > self._end_y - self._target_min_size:
-                self._start_y = self._end_y - self._target_min_size
+            if top_y[0] > bottom_y[0] - self._target_min_size:
+                top_y[0] = bottom_y[0] - self._target_min_size
 
-        def _stretch_bottom_side():
-            if self._end_y >= self._start_y + self._target_min_size:
-                self._end_y = cursor_y
+        def _stretch_bottom_side(top_y, bottom_y):
+            if bottom_y[0] >= top_y[0] + self._target_min_size:
+                bottom_y[0] = cursor_y
 
-            if self._end_y < self._start_y + self._target_min_size:
-                self._end_y = self._start_y + self._target_min_size
+            if bottom_y[0] < top_y[0] + self._target_min_size:
+                bottom_y[0] = top_y[0] + self._target_min_size
 
-        def _stretch_left_side():
-            if self._start_x <= self._end_x - self._target_min_size:
-                self._start_x = cursor_x
+        def _stretch_left_side(left_x, right_x):
+            if left_x[0] <= right_x[0] - self._target_min_size:
+                left_x[0] = cursor_x
 
-            if self._start_x > self._end_x - self._target_min_size:
-                self._start_x = self._end_x - self._target_min_size
+            if left_x[0] > right_x[0] - self._target_min_size:
+                left_x[0] = right_x[0] - self._target_min_size
 
-        def _stretch_right_side():
-            if self._end_x >= self._start_x + self._target_min_size:
-                self._end_x = cursor_x
+        def _stretch_right_side(left_x, right_x):
+            if right_x[0] >= left_x[0] + self._target_min_size:
+                right_x[0] = cursor_x
 
-            if self._end_x < self._start_x + self._target_min_size:
-                self._end_x = self._start_x + self._target_min_size
+            if right_x[0] < left_x[0] + self._target_min_size:
+                right_x[0] = left_x[0] + self._target_min_size
 
         match side:
             case 5:
-                if self._start_y < self._end_y:
-                    _stretch_top_side()
+                if self._start_y[0] < self._end_y[0]:
+                    _stretch_top_side(self._start_y, self._end_y)
                 else:
-                    _stretch_bottom_side()
+                    _stretch_top_side(self._end_y, self._start_y)
             case 6:
-                _stretch_left_side()
-            case 7:
-                if self._start_y < self._end_y:
-                    _stretch_bottom_side()
+                if self._start_x[0] < self._end_x[0]:
+                    _stretch_left_side(self._start_x, self._end_x)
                 else:
-                    _stretch_top_side()
+                    _stretch_left_side(self._end_x, self._start_x)
+            case 7:
+                if self._start_y[0] < self._end_y[0]:
+                    _stretch_bottom_side(self._start_y, self._end_y)
+                else:
+                    _stretch_bottom_side(self._end_y, self._start_y)
             case 8:
-                _stretch_right_side()
+                if self._start_x[0] < self._end_x[0]:
+                    _stretch_right_side(self._start_x, self._end_x)
+                else:
+                    _stretch_right_side(self._end_x, self._start_x)
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def _stretch_corners(self, cursor_x, cursor_y, corner: int):
@@ -414,70 +420,70 @@ class MoveMenu:
         match corner:
             case 1:
                 if self._limits:
-                    if self._start_x <= self._end_x - self._target_min_size:
-                        self._start_x = cursor_x
+                    if self._start_x[0] <= self._end_x[0] - self._target_min_size:
+                        self._start_x[0] = cursor_x
 
-                    if self._start_x > self._end_x - self._target_min_size:
-                        self._start_x = self._end_x - self._target_min_size
+                    if self._start_x[0] > self._end_x[0] - self._target_min_size:
+                        self._start_x[0] = self._end_x[0] - self._target_min_size
 
-                    if self._start_y <= self._end_y - self._target_min_size:
-                        self._start_y = cursor_y
+                    if self._start_y[0] <= self._end_y[0] - self._target_min_size:
+                        self._start_y[0] = cursor_y
 
-                    if self._start_y > self._end_y - self._target_min_size:
-                        self._start_y = self._end_y - self._target_min_size
+                    if self._start_y[0] > self._end_y[0] - self._target_min_size:
+                        self._start_y[0] = self._end_y[0] - self._target_min_size
                 else:
-                    self._start_x = cursor_x
-                    self._start_y = cursor_y
+                    self._start_x[0] = cursor_x
+                    self._start_y[0] = cursor_y
             case 2:
                 if self._limits:
-                    if self._end_x >= self._start_x + self._target_min_size:
-                        self._end_x = cursor_x
+                    if self._end_x[0] >= self._start_x[0] + self._target_min_size:
+                        self._end_x[0] = cursor_x
 
-                    if self._end_x < self._start_x + self._target_min_size:
-                        self._end_x = self._start_x + self._target_min_size
+                    if self._end_x[0] < self._start_x[0] + self._target_min_size:
+                        self._end_x[0] = self._start_x[0] + self._target_min_size
 
-                    if self._end_y >= self._start_y + self._target_min_size:
-                        self._end_y = cursor_y
+                    if self._end_y[0] >= self._start_y[0] + self._target_min_size:
+                        self._end_y[0] = cursor_y
 
-                    if self._end_y < self._start_y + self._target_min_size:
-                        self._end_y = self._start_y + self._target_min_size
+                    if self._end_y[0] < self._start_y[0] + self._target_min_size:
+                        self._end_y[0] = self._start_y[0] + self._target_min_size
                 else:
-                    self._end_x = cursor_x
-                    self._end_y = cursor_y
+                    self._end_x[0] = cursor_x
+                    self._end_y[0] = cursor_y
             case 3:
                 if self._limits:
-                    if self._end_x >= self._start_x + self._target_min_size:
-                        self._end_x = cursor_x
+                    if self._end_x[0] >= self._start_x[0] + self._target_min_size:
+                        self._end_x[0] = cursor_x
 
-                    if self._end_x < self._start_x + self._target_min_size:
-                        self._end_x = self._start_x + self._target_min_size
+                    if self._end_x[0] < self._start_x[0] + self._target_min_size:
+                        self._end_x[0] = self._start_x[0] + self._target_min_size
 
-                    if self._start_y <= self._end_y - self._target_min_size:
-                        self._start_y = cursor_y
+                    if self._start_y[0] <= self._end_y[0] - self._target_min_size:
+                        self._start_y[0] = cursor_y
 
-                    if self._start_y > self._end_y - self._target_min_size:
-                        self._start_y = self._end_y - self._target_min_size
+                    if self._start_y[0] > self._end_y[0] - self._target_min_size:
+                        self._start_y[0] = self._end_y[0] - self._target_min_size
                 else:
-                    self._end_x = cursor_x
-                    self._start_y = cursor_y
+                    self._end_x[0] = cursor_x
+                    self._start_y[0] = cursor_y
             case 4:
                 if self._limits:
-                    if self._start_x <= self._end_x - self._target_min_size:
-                        self._start_x = cursor_x
+                    if self._start_x[0] <= self._end_x[0] - self._target_min_size:
+                        self._start_x[0] = cursor_x
 
-                    if self._start_x > self._end_x - self._target_min_size:
-                        self._start_x = self._end_x - self._target_min_size
+                    if self._start_x[0] > self._end_x[0] - self._target_min_size:
+                        self._start_x[0] = self._end_x[0] - self._target_min_size
 
-                    if self._end_y >= self._start_y + self._target_min_size:
-                        self._end_y = cursor_y
+                    if self._end_y[0] >= self._start_y[0] + self._target_min_size:
+                        self._end_y[0] = cursor_y
 
-                    if self._end_y < self._start_y + self._target_min_size:
-                        self._end_y = self._start_y + self._target_min_size
+                    if self._end_y[0] < self._start_y[0] + self._target_min_size:
+                        self._end_y[0] = self._start_y[0] + self._target_min_size
                 else:
-                    self._start_x = cursor_x
-                    self._end_y = cursor_y
+                    self._start_x[0] = cursor_x
+                    self._end_y[0] = cursor_y
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def create(self, event=None):
@@ -501,11 +507,11 @@ class MoveMenu:
             self._del_func()
         self.destroy()
 
-        if self._start_y - 1 >= 0:
-            self._start_y -= 1
-            self._end_y -= 1
+        if self._start_y[0] - 1 >= 0:
+            self._start_y[0] -= 1
+            self._end_y[0] -= 1
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     # Move
@@ -515,11 +521,11 @@ class MoveMenu:
         self.destroy()
 
         canvas_width = self._master.winfo_width()
-        if self._end_x + 1 <= canvas_width:
-            self._start_x += 1
-            self._end_x += 1
+        if self._end_x[0] + 1 <= canvas_width:
+            self._start_x[0] += 1
+            self._end_x[0] += 1
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def handle_down_move(self, event):
@@ -528,11 +534,11 @@ class MoveMenu:
         self.destroy()
 
         canvas_height = self._master.winfo_height()
-        if self._end_y + 1 <= canvas_height:
-            self._start_y += 1
-            self._end_y += 1
+        if self._end_y[0] + 1 <= canvas_height:
+            self._start_y[0] += 1
+            self._end_y[0] += 1
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def handle_left_move(self, event):
@@ -540,21 +546,21 @@ class MoveMenu:
             self._del_func()
         self.destroy()
 
-        if self._start_x - 1 >= 0:
-            self._start_x -= 1
-            self._end_x -= 1
+        if self._start_x[0] - 1 >= 0:
+            self._start_x[0] -= 1
+            self._end_x[0] -= 1
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def handle_up_stretch(self, event):
         if self._del_func() is not None:
             self._del_func()
 
-        if self._start_y - 1 >= 0:
-            self._start_y -= 1
+        if self._start_y[0] - 1 >= 0:
+            self._start_y[0] -= 1
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     # Stretch
@@ -564,10 +570,10 @@ class MoveMenu:
             self._del_func()
 
         canvas_width = self._master.winfo_width()
-        if self._end_x + 1 <= canvas_width:
-            self._end_x += 1
+        if self._end_x[0] + 1 <= canvas_width:
+            self._end_x[0] += 1
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def handle_down_stretch(self, event):
@@ -575,20 +581,20 @@ class MoveMenu:
             self._del_func()
 
         canvas_height = self._master.winfo_height()
-        if self._end_y + 1 <= canvas_height:
-            self._end_y += 1
+        if self._end_y[0] + 1 <= canvas_height:
+            self._end_y[0] += 1
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def handle_left_stretch(self, event):
         if self._del_func() is not None:
             self._del_func()
 
-        if self._start_x - 1 >= 0:
-            self._start_x -= 1
+        if self._start_x[0] - 1 >= 0:
+            self._start_x[0] -= 1
 
-        self._target.set_coordinates(self._start_x, self._start_y, self._end_x, self._end_y)
+        self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
     def set_target(self, target):
