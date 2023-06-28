@@ -75,13 +75,17 @@ class MoveMenu:
 
         if self._target.get_width() > 5 and self._target.get_height() > 5:
             corners_coordinates = self._target.get_corners_coordinates()
-            coordinate_indices = [0, 0, 3, 2]
+            if self._start_x[0] < self._end_x[0]:
+                coordinate_indices = [0, 0, 3, 2]
+                button_indices = [5, 6, 7, 8]
+            else:
+                coordinate_indices = [3, 0, 0, 2]
+                button_indices = [7, 6, 5, 8]
             orientations = ['horizontal', 'vertical', 'horizontal', 'vertical']
-            button_indices = [5, 6, 7, 8]
 
             for coord_index, orientation, button_index in zip(coordinate_indices, orientations, button_indices):
                 self._create_unsymmetrical_move_button(corners_coordinates[coord_index], "side", side=orientation,
-                                         button_index=button_index)
+                                                       button_index=button_index)
 
         corners_coordinates = self._target.get_corners_coordinates()
 
@@ -89,7 +93,7 @@ class MoveMenu:
         self._create_unsymmetrical_move_button(center_position, "center", button_index=0)
 
     def _create_unsymmetrical_move_button(self, position, button_type: str, side: str = None,
-                            button_index: int = None):
+                                          button_index: int = None):
         x = position[0]
         y = position[1]
 
@@ -114,19 +118,20 @@ class MoveMenu:
         elif button_type == "side":
             if side == "horizontal":
                 cursor = 'sb_v_double_arrow'
+
                 x_offset = int(min(int(target_width / 4), self._corner_button_max_size) +
-                               min(int((self._end_x[0] - self._start_x[0]) / 4),
-                                   self._corner_button_max_size) / 2)
+                               min(int(target_width / 4), self._corner_button_max_size) / 2)
                 y_offset = int(min(int(target_height / 4), self._corner_button_max_size) / 2)
 
                 x += x_offset
                 y += y_offset
-                width = int(self._end_x[0] - self._start_x[0] -
-                            min(int((self._end_x[0] - self._start_x[0]) / 4),
-                                self._corner_button_max_size))
+
+                width = int(target_width - min(int(target_width / 4), self._corner_button_max_size))
                 height = min(int(target_height / 4), self._corner_button_max_size)
+
             elif side == "vertical":
                 cursor = 'sb_h_double_arrow'
+
                 x_offset = int(min(int(target_width / 4), self._corner_button_max_size) -
                                min(int(target_width / 4), self._corner_button_max_size) / 2)
                 y_offset = int(min(int(target_height / 4), self._corner_button_max_size) +
@@ -142,6 +147,7 @@ class MoveMenu:
             y_offset = min(int(target_height / 4), self._corner_button_max_size)
         elif button_type == "corner":
             if button_index == 1 or button_index == 2:
+                print(x, y, button_index)
                 cursor = "size_nw_se"
             elif button_index == 3 or button_index == 4:
                 cursor = "size_ne_sw"
@@ -311,51 +317,39 @@ class MoveMenu:
             x += self._initial_target_width / 2
             y += self._initial_target_height / 2
 
-        if x - self._initial_target_width + cursor_x >= 0 and x + self._initial_target_width <= canvas_width:
-            if self._start_x[0] < self._end_x[0]:
-                self._start_x[0] = x - self._initial_target_width + cursor_x
-                self._end_x[0] = x + cursor_x
-            else:
-                self._start_x[0] = x + cursor_x
-                self._end_x[0] = x - self._initial_target_width + cursor_x
+        def update_x_position(left_x, right_x):
+            if x - self._initial_target_width + cursor_x >= 0 and x + self._initial_target_width <= canvas_width:
+                left_x[0] = x - self._initial_target_width + cursor_x
+                right_x[0] = x + cursor_x
 
-        if x - self._initial_target_width + cursor_x < 0:
-            if self._start_x[0] < self._end_x[0]:
-                self._start_x[0] = 0
-                self._end_x[0] = self._initial_target_width
-            else:
-                self._start_x[0] = self._initial_target_width
-                self._end_x[0] = 0
-        elif x + cursor_x > canvas_width:
-            if self._start_x[0] < self._end_x[0]:
-                self._start_x[0] = canvas_width - self._initial_target_width
-                self._end_x[0] = canvas_width
-            else:
-                self._start_x[0] = canvas_width
-                self._end_x[0] = canvas_width - self._initial_target_width
+            if x - self._initial_target_width + cursor_x < 0:
+                left_x[0] = 0
+                right_x[0] = self._initial_target_width
+            elif x + cursor_x > canvas_width:
+                left_x[0] = canvas_width - self._initial_target_width
+                right_x[0] = canvas_width
 
-        if cursor_y + y - self._initial_target_height >= 0 and cursor_y + y <= canvas_height:
-            if self._start_y[0] < self._end_y[0]:
-                self._start_y[0] = cursor_y + y - self._initial_target_height
-                self._end_y[0] = cursor_y + y
-            else:
-                self._start_y[0] = cursor_y + y
-                self._end_y[0] = cursor_y + y - self._initial_target_height
+        if self._start_x[0] < self._end_x[0]:
+            update_x_position(self._start_x, self._end_x)
+        else:
+            update_x_position(self._end_x, self._start_x)
 
-        if cursor_y + y - self._initial_target_height < 0:
-            if self._start_y[0] < self._end_y[0]:
-                self._start_y[0] = 0
-                self._end_y[0] = self._initial_target_height
-            else:
-                self._start_y[0] = self._initial_target_height
-                self._end_y[0] = 0
-        elif cursor_y + y > canvas_height:
-            if self._start_y[0] < self._end_y[0]:
-                self._start_y[0] = canvas_height - self._initial_target_height
-                self._end_y[0] = canvas_height
-            else:
-                self._start_y[0] = canvas_height
-                self._end_y[0] = canvas_height - self._initial_target_height
+        def update_y_position(top_y, bottom_y):
+            if cursor_y + y - self._initial_target_height >= 0 and cursor_y + y <= canvas_height:
+                top_y[0] = cursor_y + y - self._initial_target_height
+                bottom_y[0] = cursor_y + y
+
+            if cursor_y + y - self._initial_target_height < 0:
+                top_y[0] = 0
+                bottom_y[0] = self._initial_target_height
+            elif cursor_y + y > canvas_height:
+                top_y[0] = canvas_height - self._initial_target_height
+                bottom_y[0] = canvas_height
+
+        if self._start_y[0] < self._end_y[0]:
+            update_y_position(self._start_y, self._end_y)
+        else:
+            update_y_position(self._end_y, self._start_y)
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
