@@ -10,7 +10,8 @@ class CanvasElement(ABC):
             color: hex = "#000000",
             width: int = 1,
             tags: str = "",
-            dash: tuple = ()):
+            dash: tuple = (),
+            symmetry: bool = True):
 
         self._canvas = canvas
 
@@ -19,6 +20,7 @@ class CanvasElement(ABC):
         self._width = width
         self._tags = tags
         self._dash = dash
+        self._symmetry = symmetry
 
         self._start_x = 0
         self._start_y = 0
@@ -50,6 +52,15 @@ class CanvasElement(ABC):
         corner4 = [x1, y2]
         return [corner1, corner2, corner3, corner4]
 
+    def get_current_corners_coordinates(self) -> list:
+        x1, x2 = [self._start_x, self._end_x]
+        y1, y2 = [self._start_y, self._end_y]
+        corner1 = [x1, y1]
+        corner2 = [x2, y2]
+        corner3 = [x2, y1]
+        corner4 = [x1, y2]
+        return [corner1, corner2, corner3, corner4]
+
     def get_width(self) -> int:
         return abs(self._start_x - self._end_x)
 
@@ -61,6 +72,9 @@ class CanvasElement(ABC):
 
     def get_tags(self) -> str:
         return self._tags
+
+    def get_symmetry(self) -> bool:
+        return self._symmetry
 
     def destroy(self):
         self._canvas.delete(self._element)
