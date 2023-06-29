@@ -5,6 +5,7 @@ from tkinter.filedialog import asksaveasfilename
 
 import customtkinter as ctk
 import pyautogui as pyautogui
+import pytesseract as pytesseract
 from PIL import ImageTk, Image
 
 from custom_widgets.button_group import ImageButtonGroup
@@ -135,7 +136,8 @@ class ScreenWindow(ctk.CTkToplevel):
                   lambda event: self.handle_stretch_release(event, key_up, key_left, key_right, key_down))
 
     def bind_alt_l(self, key_up: str, key_left: str, key_right: str, key_down: str):
-        self.bind("<KeyPress-Alt_L>", lambda event: self.handle_stretch(event, key_up, key_left, key_right, key_down, -1))
+        self.bind("<KeyPress-Alt_L>",
+                  lambda event: self.handle_stretch(event, key_up, key_left, key_right, key_down, -1))
         self.bind("<KeyRelease-Alt_L>",
                   lambda event: self.handle_stretch_release(event, key_up, key_left, key_right, key_down))
 
@@ -169,10 +171,11 @@ class ScreenWindow(ctk.CTkToplevel):
         self.canvas.bind("<ButtonRelease-1>", self.create_menus)
 
     def change_element_width(self, event):
-        self.drawing_element.change_width(event.delta / 120)
-        self.drawing_element.create()
-        self.move_menu.rise()
-        self.canvas.tag_raise("drawing_selection")
+        if self.drawing_element is not None:
+            self.drawing_element.change_width(event.delta / 120)
+            self.drawing_element.create()
+            self.move_menu.rise()
+            self.canvas.tag_raise("drawing_selection")
 
     ##
     def start_selection(self, event):
@@ -252,6 +255,7 @@ class ScreenWindow(ctk.CTkToplevel):
 
         save_icon = Image.open("images/save-icon.png")
         copy_icon = Image.open("images/copy-icon.png")
+        txt_icon = Image.open("images/txt-icon.png")
 
         images = None
         values = None
@@ -260,8 +264,8 @@ class ScreenWindow(ctk.CTkToplevel):
             images = (move_icon, save_icon, copy_icon)
             values = ["draw", "save", "copy"]
         elif self.current_mode == "selection":
-            images = (draw_icon, save_icon, copy_icon)
-            values = ["move", "save", "copy"]
+            images = (draw_icon, save_icon, copy_icon, txt_icon)
+            values = ["move", "save", "copy", "txt"]
 
         self.main_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
                                           values=values, images=images, fg_color="gray50",
@@ -377,6 +381,8 @@ class ScreenWindow(ctk.CTkToplevel):
             self.save_image()
         elif value == "copy":
             self.copy_image()
+        elif value == "txt":
+            self.image_to_txt()
 
     def draw_menu_callback(self, value):
         self.bind_draw_mouse_events()
@@ -443,6 +449,7 @@ class ScreenWindow(ctk.CTkToplevel):
             time.sleep(0.2)
             screenshot = pyautogui.screenshot()
             screenshot = screenshot.crop((start_x, start_y, start_x + width, start_y + height))
+            screenshot = screenshot.resize((width * 2, height * 2))
             if save_path:
                 screenshot.save(save_path)
             self.attributes("-topmost", True)
@@ -478,6 +485,42 @@ class ScreenWindow(ctk.CTkToplevel):
                 (start_x, start_y, start_x + width, start_y + height))
             copy_screenshot_to_clipboard(screenshot)
             self.destroy_window()
+
+        screenshot_thread = threading.Thread(target=delay_and_screenshot)
+        screenshot_thread.start()
+
+    def image_to_txt(self, event=None):
+        corners_coordinates = self.selection_rect.get_corners_coordinates()
+        start_x, end_x = corners_coordinates[0][0], corners_coordinates[1][0]
+        start_y, end_y = corners_coordinates[0][1], corners_coordinates[1][1]
+
+        width = self.selection_rect.get_width()
+        height = self.selection_rect.get_height()
+
+        self.unbind_mouse()
+
+        self.move_menu.destroy()
+        self.destroy_menus()
+        self.destroy_canvas_elements()
+
+        selection = self.canvas.find_withtag("selection")
+        self.canvas.itemconfig(selection, width=0)
+
+        def delay_and_screenshot():
+            time.sleep(0.1)
+            screenshot = pyautogui.screenshot()
+            screenshot = screenshot.crop(
+                (start_x, start_y, start_x + width, start_y + height))
+
+            pytesseract.pytesseract.tesseract_cmd = "D:/tesseract/tesseract.exe"
+            text = pytesseract.image_to_string(screenshot)
+            print(text)
+
+            self.textbox = ctk.CTkTextbox(master=self, corner_radius=0)
+            self.textbox.place_configure(x=0, y=0)
+            self.textbox.insert("0.0", text)
+
+            self.create_menus()
 
         screenshot_thread = threading.Thread(target=delay_and_screenshot)
         screenshot_thread.start()
