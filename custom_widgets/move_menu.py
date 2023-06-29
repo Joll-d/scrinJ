@@ -392,10 +392,14 @@ class MoveMenu:
             self._del_func()
         self.destroy()
 
-        if self._start_y[0] - offset >= 0:
-            self._start_y[0] -= offset
-            self._end_y[0] -= offset
-
+        if self._start_y[0] < self._end_y[0]:
+            if self._start_y[0] - offset >= 0:
+                self._start_y[0] -= offset
+                self._end_y[0] -= offset
+        else:
+            if self._end_y[0] - offset >= 0:
+                self._start_y[0] -= offset
+                self._end_y[0] -= offset
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
@@ -406,10 +410,14 @@ class MoveMenu:
         self.destroy()
 
         canvas_width = self._master.winfo_width()
-        if self._end_x[0] + offset <= canvas_width:
-            self._start_x[0] += offset
-            self._end_x[0] += offset
-
+        if self._start_x[0] < self._end_x[0]:
+            if self._end_x[0] + offset <= canvas_width:
+                self._start_x[0] += offset
+                self._end_x[0] += offset
+        else:
+            if self._start_x[0] + offset <= canvas_width:
+                self._start_x[0] += offset
+                self._end_x[0] += offset
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
@@ -419,10 +427,14 @@ class MoveMenu:
         self.destroy()
 
         canvas_height = self._master.winfo_height()
-        if self._end_y[0] + offset <= canvas_height:
-            self._start_y[0] += offset
-            self._end_y[0] += offset
-
+        if self._start_y[0] < self._end_y[0]:
+            if self._end_y[0] + offset <= canvas_height:
+                self._start_y[0] += offset
+                self._end_y[0] += offset
+        else:
+            if self._start_y[0] + offset <= canvas_height:
+                self._start_y[0] += offset
+                self._end_y[0] += offset
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
 
@@ -431,9 +443,14 @@ class MoveMenu:
             self._del_func()
         self.destroy()
 
-        if self._start_x[0] - offset >= 0:
-            self._start_x[0] -= offset
-            self._end_x[0] -= offset
+        if self._start_x[0] < self._end_x[0]:
+            if self._start_x[0] - offset >= 0:
+                self._start_x[0] -= offset
+                self._end_x[0] -= offset
+        else:
+            if self._end_x[0] - offset >= 0:
+                self._start_x[0] -= offset
+                self._end_x[0] -= offset
 
         self._target.set_coordinates(self._start_x[0], self._start_y[0], self._end_x[0], self._end_y[0])
         self._target.create()
