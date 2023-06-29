@@ -21,6 +21,9 @@ class CanvasElement(ABC):
         self._tags = tags
         self._dash = dash
         self._symmetry = symmetry
+        self.is_filled = None
+        self.is_dashed = None
+        self._fill = None
 
         self._start_x = 0
         self._start_y = 0
@@ -85,3 +88,25 @@ class CanvasElement(ABC):
         if self.get_height() < self._min_size:
             self._end_y = self._start_y + self._min_size
 
+    def switch_dash(self):
+        if not self.is_dashed:
+            self._dash = (5, 3)
+            self.is_dashed = True
+        else:
+            self._dash = ()
+            self.is_dashed = False
+
+    def switch_fill(self):
+        if not self.is_filled:
+            self._fill = self._color
+            self.is_filled = True
+        else:
+            self._fill = ""
+            self.is_filled = False
+            
+    def set_color(self, color: hex):
+        self._color = color
+
+    def change_width(self, width):
+        if self._width + width > 0:
+            self._width += width

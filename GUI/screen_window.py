@@ -49,9 +49,11 @@ class ScreenWindow(ctk.CTkToplevel):
         self.main_menu_position = None
 
         self.draw_menu = None
+        self.additional_line_menu = None
         self.color_picker_button = None
         self.drawing_element = None
-        self.drawing_selection = Rectangle(self.canvas, color="gray50", tags="drawing_selection", dash=(5, 3), min_size=3)
+        self.drawing_selection = Rectangle(self.canvas, color="gray50", tags="drawing_selection", dash=(5, 3),
+                                           min_size=3)
 
         self.move_menu = MoveMenu(
             self.canvas,
@@ -73,6 +75,8 @@ class ScreenWindow(ctk.CTkToplevel):
         self.unbind("<ButtonRelease-1>")
 
     def bind_events(self):
+
+        self.bind_change_element_width()
         key_up = "Up"
         key_left = "Left"
         key_right = "Right"
@@ -148,17 +152,24 @@ class ScreenWindow(ctk.CTkToplevel):
         self.selection_rect.create()
 
         self.creating_menu()
+        self.move_menu.destroy()
         if self.current_mode == "selection":
             self.move_menu.set_target(self.selection_rect)
             self.move_menu.set_limits(True)
             self.move_menu.create()
             self.destroy_canvas_elements()
         elif self.current_mode == "draw":
-            self.move_menu.destroy()
             if self.drawing_element is not None:
                 self.move_menu.set_target(self.drawing_element)
                 self.move_menu.set_limits(False)
                 self.move_menu.create()
+
+    def bind_change_element_width(self):
+        self.bind(f"<MouseWheel>", self.change_element_width)
+
+    def change_element_width(self, event):
+        self.drawing_element.change_width(event.delta / 120)
+        self.drawing_element.create()
 
     def del_func(self):
         self.destroy_menus()
@@ -168,6 +179,7 @@ class ScreenWindow(ctk.CTkToplevel):
         self.main_menu_position = self.create_menu()
 
         if self.current_mode == "draw":
+            self.create_drawing_element_menu()
             self.create_color_picker_menu(self.main_menu_position)
             self.create_draw_menu(self.main_menu_position)
             if self.drawing_element is not None:
@@ -178,6 +190,36 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.bind_control_l()
         self.disable_mouse_selection()
+
+    def create_drawing_element_menu(self):
+        self.destroy_drawing_element_menu()
+
+        arrow_icon = Image.open("images/arrow-icon.png")
+        dashed_icon = Image.open("images/dashed-icon.png")
+        fill_icon = Image.open("images/fill-icon.png")
+
+        if type(self.drawing_element).__name__ == "Line":
+            images = (arrow_icon, dashed_icon)
+            values = ["arrow", "dash"]
+        else:
+            images = (dashed_icon, fill_icon)
+            values = ["dash", "fill"]
+
+        self.additional_line_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
+                                                     values=values, images=images, fg_color="gray50",
+                                                     command=self.additional_line_menu_callback)
+
+        self.additional_line_menu.place_configure(x=0, y=0)
+
+    def additional_line_menu_callback(self, value):
+        if value == "arrow":
+            self.drawing_element.switch_arrow()
+        elif value == "dash":
+            self.drawing_element.switch_dash()
+        elif value == "fill":
+            self.drawing_element.switch_fill()
+        self.drawing_element.create()
+        self.move_menu.create()
 
     def disable_mouse_selection(self, event=None):
         self.canvas.unbind("<Button-1>")
@@ -259,7 +301,6 @@ class ScreenWindow(ctk.CTkToplevel):
         return position
 
     def create_draw_menu(self, position):
-
         line_icon = Image.open("images/line-icon.png")
         rectangle_icon = Image.open("images/rectangle-icon.png")
         circle_icon = Image.open("images/circle-icon.png")
@@ -317,8 +358,12 @@ class ScreenWindow(ctk.CTkToplevel):
         self.attributes("-topmost", True)
         self.create_color_picker_menu(self.main_menu_position)
 
-    def find_suitable_position(self, possible_positions, width: int, height: int):
+        if self.drawing_element is not None:
+            self.drawing_element.set_color(self.drawing_color)
+            self.drawing_element.create()
+            self.move_menu.create()
 
+    def find_suitable_position(self, possible_positions, width: int, height: int):
         for position in possible_positions:
             x, y = position
             if self.check_screen_fit(x, y, width, height):
@@ -349,12 +394,15 @@ class ScreenWindow(ctk.CTkToplevel):
 
     def draw_menu_callback(self, value):
         self.bind_draw_mouse_events()
+        self.unselect_drawing_element()
         if value == "line":
             self.drawing_element = Line(self.canvas, color=self.drawing_color, width=2, tags="line", min_size=1)
         elif value == "rectangle":
-            self.drawing_element = Rectangle(self.canvas, color=self.drawing_color, width=2, tags="rectangle", min_size=1)
+            self.drawing_element = Rectangle(self.canvas, color=self.drawing_color, width=2, tags="rectangle",
+                                             min_size=1)
         elif value == "circle":
             self.drawing_element = Circle(self.canvas, color=self.drawing_color, width=2, tags="circle", min_size=1)
+        self.create_drawing_element_menu()
 
     #
 
@@ -422,6 +470,7 @@ class ScreenWindow(ctk.CTkToplevel):
             "main_menu": self.main_menu,
             "color_picker_button": self.color_picker_button,
             "draw_menu": self.draw_menu,
+            "additional_line_menu": self.additional_line_menu,
         }
         for attr_name, item in items_to_destroy.items():
             if item is not None:
@@ -442,6 +491,20 @@ class ScreenWindow(ctk.CTkToplevel):
             if item is not None:
                 item.destroy()
                 setattr(self, attr_name, None)
+
+    def destroy_drawing_element_menu(self):
+        items_to_destroy = {
+            "additional_line_menu": self.additional_line_menu,
+        }
+        for attr_name, item in items_to_destroy.items():
+            if item is not None:
+                item.destroy()
+                setattr(self, attr_name, None)
+
+    def unselect_drawing_element(self):
+        self.move_menu.destroy()
+        self.drawing_selection.destroy()
+        self.drawing_element = None
 
     def destroy_window(self, event=None):
         self.destroy()
