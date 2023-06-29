@@ -93,6 +93,7 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind_control_l()
 
         self.bind_shift_l(key_up, key_left, key_right, key_down)
+        self.bind_alt_l(key_up, key_left, key_right, key_down)
 
         self.bind_configure()
 
@@ -128,21 +129,26 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind("<KeyRelease-Shift_L>",
                   lambda event: self.handle_stretch_release(event, key_up, key_left, key_right, key_down))
 
+    def bind_alt_l(self, key_up: str, key_left: str, key_right: str, key_down: str):
+        self.bind("<KeyPress-Alt_L>", lambda event: self.handle_stretch(event, key_up, key_left, key_right, key_down, -1))
+        self.bind("<KeyRelease-Alt_L>",
+                  lambda event: self.handle_stretch_release(event, key_up, key_left, key_right, key_down))
+
     def handle_stretch_release(self, event, key_up: str, key_left: str, key_right: str, key_down: str):
         self.holding_shift_l = False
         self.bind_keys_move(key_up, key_left, key_right, key_down)
         self.bind_keys_move_release(key_up, key_left, key_right, key_down)
 
-    def handle_stretch(self, event, key_up: str, key_left: str, key_right: str, key_down: str):
+    def handle_stretch(self, event, key_up: str, key_left: str, key_right: str, key_down: str, offset: int = 1):
         self.holding_shift_l = True
-        self.bind_stretch(key_up, key_left, key_right, key_down)
+        self.bind_stretch(key_up, key_left, key_right, key_down, offset)
         self.bind_keys_move_release(key_up, key_left, key_right, key_down)
 
-    def bind_stretch(self, key_up: str, key_left: str, key_right: str, key_down: str):
-        self.bind(f"<{key_up}>", self.move_menu.handle_up_stretch)
-        self.bind(f"<{key_left}>", self.move_menu.handle_left_stretch)
-        self.bind(f"<{key_right}>", self.move_menu.handle_right_stretch)
-        self.bind(f"<{key_down}>", self.move_menu.handle_down_stretch)
+    def bind_stretch(self, key_up: str, key_left: str, key_right: str, key_down: str, offset: int):
+        self.bind(f"<{key_up}>", lambda event: self.move_menu.handle_up_stretch(event, offset))
+        self.bind(f"<{key_left}>", lambda event: self.move_menu.handle_left_stretch(event, offset))
+        self.bind(f"<{key_right}>", lambda event: self.move_menu.handle_right_stretch(event, offset))
+        self.bind(f"<{key_down}>", lambda event: self.move_menu.handle_down_stretch(event, offset))
 
     # Bind handlers
 
