@@ -76,6 +76,9 @@ class CanvasElement(ABC):
     def get_tags(self) -> str:
         return self._tags
 
+    def get_element(self):
+        return self._element
+
     def get_symmetry(self) -> bool:
         return self._symmetry
 

@@ -41,6 +41,9 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.focus()
 
+        self.undo_stack = []
+        self.redo_stack = []
+
         self.corner_button_max_size = 10
         self.selection_min_size = 20
 
@@ -91,6 +94,9 @@ class ScreenWindow(ctk.CTkToplevel):
         destroy = "Escape"
         self.bind_destroy(destroy)
 
+        self.bind_unselect()
+        self.bind_undo()
+
         self.bind_control_l()
         self.bind_save_copy()
 
@@ -98,6 +104,13 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind_alt_l(key_up, key_left, key_right, key_down)
 
         self.bind_configure()
+
+    def bind_undo(self):
+        self.bind("<Control-z>", lambda event: self.undo_action())
+        self.bind("<Control-Shift-Z>", lambda event: self.redo_action())
+
+    def bind_unselect(self):
+        self.bind("<Return>", lambda event: self.unselect_drawing_element())
 
     def bind_save_copy(self):
         self.bind("<Control-c>", self.copy_image)
@@ -161,6 +174,7 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind(f"<MouseWheel>", self.change_element_width)
 
     def disable_mouse_selection(self, event=None):
+        self.bind_undo()
         self.canvas.unbind("<Button-1>")
         self.canvas.unbind("<B1-Motion>")
         self.canvas.unbind("<ButtonRelease-1>")
@@ -206,6 +220,47 @@ class ScreenWindow(ctk.CTkToplevel):
     ##
     def create_dimming_rectangle(self, event):
         self.canvas.coords(self.dimming_rect, 0, 0, event.width, event.height)
+
+    def undo_action(self):
+        self.canvas.config(cursor="")
+        if self.undo_stack:
+            element = self.undo_stack.pop()
+            element.destroy()
+
+            self.redo_stack.append(element)
+
+            if len(self.undo_stack) > 0:
+                self.drawing_element = self.undo_stack[-1]
+                element = self.undo_stack[-1]
+
+                if self.current_mode == "draw":
+                    self.update_move_menu_and_selection(element)
+            else:
+                self.move_menu.destroy()
+                self.drawing_selection.destroy()
+
+    def redo_action(self):
+        self.canvas.config(cursor="")
+        if self.redo_stack:
+            element = self.redo_stack.pop()
+            element.create()
+            self.undo_stack.append(element)
+            self.drawing_element = element
+
+            if self.current_mode == "draw":
+                self.update_move_menu_and_selection(element)
+
+    def update_move_menu_and_selection(self, element):
+        self.move_menu.set_target(element)
+        self.move_menu.create()
+        new_selection_coordinates = element.get_current_corners_coordinates()
+        self.drawing_selection.set_coordinates(
+            start_x=new_selection_coordinates[0][0],
+            start_y=new_selection_coordinates[0][1],
+            end_x=new_selection_coordinates[1][0],
+            end_y=new_selection_coordinates[1][1]
+        )
+        self.drawing_selection.create()
 
     # Menus
 
@@ -256,16 +311,18 @@ class ScreenWindow(ctk.CTkToplevel):
         save_icon = Image.open("images/save-icon.png")
         copy_icon = Image.open("images/copy-icon.png")
         txt_icon = Image.open("images/txt-icon.png")
+        undo_icon = Image.open("images/undo-icon.png")
+        redo_icon = Image.open("images/redo-icon.png")
 
         images = None
         values = None
 
         if self.current_mode == "draw":
-            images = (move_icon, save_icon, copy_icon)
-            values = ["draw", "save", "copy"]
+            images = (move_icon, save_icon, copy_icon, undo_icon, redo_icon)
+            values = ["draw", "save", "copy", "undo", "redo"]
         elif self.current_mode == "selection":
-            images = (draw_icon, save_icon, copy_icon, txt_icon)
-            values = ["move", "save", "copy", "txt"]
+            images = (draw_icon, save_icon, copy_icon, txt_icon, undo_icon, redo_icon)
+            values = ["move", "save", "copy", "txt", "undo", "redo"]
 
         self.main_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
                                           values=values, images=images, fg_color="gray50",
@@ -383,17 +440,24 @@ class ScreenWindow(ctk.CTkToplevel):
             self.copy_image()
         elif value == "txt":
             self.image_to_txt()
+        elif value == "undo":
+            self.undo_action()
+        elif value == "redo":
+            self.redo_action()
 
     def draw_menu_callback(self, value):
         self.bind_draw_mouse_events()
         self.unselect_drawing_element()
         if value == "line":
             self.drawing_element = Line(self.canvas, color=self.drawing_color, width=2, tags="line", min_size=0)
+            self.undo_stack.append(self.drawing_element)
         elif value == "rectangle":
             self.drawing_element = Rectangle(self.canvas, color=self.drawing_color, width=2, tags="rectangle",
                                              min_size=1)
+            self.undo_stack.append(self.drawing_element)
         elif value == "circle":
             self.drawing_element = Circle(self.canvas, color=self.drawing_color, width=2, tags="circle", min_size=1)
+            self.undo_stack.append(self.drawing_element)
         self.create_drawing_element_menu()
 
     def drawing_element_menu_callback(self, value):
