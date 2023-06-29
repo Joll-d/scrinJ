@@ -22,6 +22,9 @@ class ScreenWindow(ctk.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.is_filled = False
+        self.is_dashed = False
+        self.is_arrow = False
         self.configure(fg_color="black")  # Темный цвет фона
 
         self.attributes("-topmost", True)
@@ -448,27 +451,40 @@ class ScreenWindow(ctk.CTkToplevel):
     def draw_menu_callback(self, value):
         self.bind_draw_mouse_events()
         self.unselect_drawing_element()
+
         if value == "line":
-            self.drawing_element = Line(self.canvas, color=self.drawing_color, width=2, tags="line", min_size=0)
+            self.drawing_element = Line(self.canvas, color=self.drawing_color, width=2, tags="line", min_size=0,
+                                        is_arrow=self.is_arrow, is_dashed=self.is_dashed)
             self.undo_stack.append(self.drawing_element)
         elif value == "rectangle":
             self.drawing_element = Rectangle(self.canvas, color=self.drawing_color, width=2, tags="rectangle",
-                                             min_size=1)
+                                             min_size=1, is_dashed=self.is_dashed, is_filled=self.is_filled)
             self.undo_stack.append(self.drawing_element)
         elif value == "circle":
-            self.drawing_element = Circle(self.canvas, color=self.drawing_color, width=2, tags="circle", min_size=1)
+            self.drawing_element = Circle(self.canvas, color=self.drawing_color, width=2, tags="circle", min_size=1,
+                                          is_dashed=self.is_dashed, is_filled=self.is_filled)
             self.undo_stack.append(self.drawing_element)
         self.create_drawing_element_menu()
 
     def drawing_element_menu_callback(self, value):
         if value == "arrow":
-            self.drawing_element.switch_arrow()
+            if self.drawing_element is not None:
+                self.drawing_element.switch_arrow()
+            self.is_arrow = self.flip_flap(self.is_arrow)
         elif value == "dash":
-            self.drawing_element.switch_dash()
+            if self.drawing_element is not None:
+                self.drawing_element.switch_dash()
+            self.is_dashed = self.flip_flap(self.is_dashed)
         elif value == "fill":
-            self.drawing_element.switch_fill()
-        self.drawing_element.create()
-        self.move_menu.create()
+            if self.drawing_element is not None:
+                self.drawing_element.switch_fill()
+            self.is_filled = self.flip_flap(self.is_filled)
+        if self.drawing_element is not None:
+            self.drawing_element.create()
+            self.move_menu.create()
+
+    def flip_flap(self, value: bool):
+        return False if value else True
 
     #
 

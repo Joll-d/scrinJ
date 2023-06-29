@@ -11,7 +11,9 @@ class CanvasElement(ABC):
             width: int = 1,
             tags: str = "",
             dash: tuple = (),
-            symmetry: bool = True):
+            symmetry: bool = True,
+            is_dashed: bool = False,
+            is_filled: bool = False):
 
         self._canvas = canvas
 
@@ -21,9 +23,20 @@ class CanvasElement(ABC):
         self._tags = tags
         self._dash = dash
         self._symmetry = symmetry
-        self.is_filled = None
-        self.is_dashed = None
         self._fill = None
+
+        self.is_filled = is_filled
+
+        if self.is_filled:
+            self._fill = self._color
+        else:
+            self._fill = ""
+        self.is_dashed = is_dashed
+
+        if self.is_dashed:
+            self._dash = (5, 3)
+        else:
+            self._dash = ()
 
         self._start_x = 0
         self._start_y = 0

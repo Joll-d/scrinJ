@@ -5,8 +5,9 @@ from custom_widgets.canvas.canvas_element import CanvasElement
 
 class Line(CanvasElement):
     def __init__(self, canvas, min_size: int = 10, color: hex = "#000000", width: int = 1, tags: str = "",
-                 dash: tuple = (), symmetry: bool = False, is_arrow: bool = False):
-        super().__init__(canvas, min_size=min_size, color=color, width=width, tags=tags, dash=dash, symmetry=symmetry)
+                 dash: tuple = (), symmetry: bool = False, is_arrow: bool = False, is_dashed: bool = False):
+        super().__init__(canvas, min_size=min_size, color=color, width=width, tags=tags, dash=dash, symmetry=symmetry,
+                         is_dashed=is_dashed)
 
         self.is_arrow = is_arrow
         if self.is_arrow:
