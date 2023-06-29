@@ -385,7 +385,7 @@ class MoveMenu:
         if self._additional_func is not None:
             self._additional_func()
 
-        self.menu_tag_rise()
+        self.rise()
 
     def handle_up_move(self, event, offset: int = 1):
         if self._del_func() is not None:
@@ -512,7 +512,7 @@ class MoveMenu:
     def set_limits(self, limits: bool):
         self._limits = limits
 
-    def menu_tag_rise(self):
+    def rise(self):
         for i in range(9):
             self._master.tag_raise(f"button_{i}")
 

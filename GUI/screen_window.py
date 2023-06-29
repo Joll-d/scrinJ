@@ -91,11 +91,16 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind_destroy(destroy)
 
         self.bind_control_l()
+        self.bind_save_copy()
 
         self.bind_shift_l(key_up, key_left, key_right, key_down)
         self.bind_alt_l(key_up, key_left, key_right, key_down)
 
         self.bind_configure()
+
+    def bind_save_copy(self):
+        self.bind("<Control-c>", self.copy_image)
+        self.bind("<Control-s>", self.save_image)
 
     def bind_keys_move(self, key_up: str, key_left: str, key_right: str, key_down: str):
         self.bind(f"<{key_up}>", self.move_menu.handle_up_move)
@@ -150,9 +155,57 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind(f"<{key_right}>", lambda event: self.move_menu.handle_right_stretch(event, offset))
         self.bind(f"<{key_down}>", lambda event: self.move_menu.handle_down_stretch(event, offset))
 
-    # Bind handlers
+    def bind_change_element_width(self):
+        self.bind(f"<MouseWheel>", self.change_element_width)
 
-    # # Dimming
+    def disable_mouse_selection(self, event=None):
+        self.canvas.unbind("<Button-1>")
+        self.canvas.unbind("<B1-Motion>")
+        self.canvas.unbind("<ButtonRelease-1>")
+
+    def bind_draw_mouse_events(self, event=None):
+        self.canvas.bind("<Button-1>", self.start_draw)
+        self.canvas.bind("<B1-Motion>", self.update_draw)
+        self.canvas.bind("<ButtonRelease-1>", self.create_menus)
+
+    def change_element_width(self, event):
+        self.drawing_element.change_width(event.delta / 120)
+        self.drawing_element.create()
+        self.move_menu.rise()
+        self.canvas.tag_raise("drawing_selection")
+
+    ##
+    def start_selection(self, event):
+        self.destroy_menus()
+        self.move_menu.destroy()
+        self.selection_rect.set_coordinates(start_x=event.x, start_y=event.y)
+
+    def update_selection(self, event):
+        self.selection_rect.set_coordinates(end_x=event.x, end_y=event.y)
+        self.selection_rect.create()
+
+    ##
+
+    def start_draw(self, event):
+        self.destroy_menus()
+        self.move_menu.destroy()
+        self.drawing_element.set_coordinates(start_x=event.x, start_y=event.y)
+        self.drawing_selection.set_coordinates(start_x=event.x, start_y=event.y)
+
+    def update_draw(self, event):
+        self.drawing_element.set_coordinates(end_x=event.x, end_y=event.y)
+        self.drawing_element.create()
+        self.drawing_selection.set_coordinates(end_x=event.x, end_y=event.y)
+        self.drawing_selection.create()
+        self.canvas.tag_raise(self.drawing_selection.get_tags())
+        self.canvas.tag_raise(self.drawing_element.get_tags())
+
+    ##
+    def create_dimming_rectangle(self, event):
+        self.canvas.coords(self.dimming_rect, 0, 0, event.width, event.height)
+
+    # Menus
+
     def create_menus(self, event=None):
 
         self.selection_rect.expand_to_minimum_size()
@@ -171,17 +224,6 @@ class ScreenWindow(ctk.CTkToplevel):
                 self.move_menu.set_limits(False)
                 self.move_menu.create()
 
-    def bind_change_element_width(self):
-        self.bind(f"<MouseWheel>", self.change_element_width)
-
-    def change_element_width(self, event):
-        self.drawing_element.change_width(event.delta / 120)
-        self.drawing_element.create()
-
-    def del_func(self):
-        self.destroy_menus()
-        self.destroy_canvas_elements()
-
     def creating_menu(self):
         self.main_menu_position = self.create_menu()
 
@@ -198,75 +240,6 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind_control_l()
         self.disable_mouse_selection()
 
-    def create_drawing_element_menu(self):
-        self.destroy_drawing_element_menu()
-
-        arrow_icon = Image.open("images/arrow-icon.png")
-        dashed_icon = Image.open("images/dashed-icon.png")
-        fill_icon = Image.open("images/fill-icon.png")
-
-        if type(self.drawing_element).__name__ == "Line":
-            images = (arrow_icon, dashed_icon)
-            values = ["arrow", "dash"]
-        else:
-            images = (dashed_icon, fill_icon)
-            values = ["dash", "fill"]
-
-        self.additional_line_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
-                                                     values=values, images=images, fg_color="gray50",
-                                                     command=self.additional_line_menu_callback)
-
-        self.additional_line_menu.place_configure(x=0, y=0)
-
-    def additional_line_menu_callback(self, value):
-        if value == "arrow":
-            self.drawing_element.switch_arrow()
-        elif value == "dash":
-            self.drawing_element.switch_dash()
-        elif value == "fill":
-            self.drawing_element.switch_fill()
-        self.drawing_element.create()
-        self.move_menu.create()
-
-    def disable_mouse_selection(self, event=None):
-        self.canvas.unbind("<Button-1>")
-        self.canvas.unbind("<B1-Motion>")
-        self.canvas.unbind("<ButtonRelease-1>")
-
-    ##
-    def start_selection(self, event):
-        self.destroy_menus()
-        self.move_menu.destroy()
-        self.selection_rect.set_coordinates(start_x=event.x, start_y=event.y)
-
-    def update_selection(self, event):
-        self.selection_rect.set_coordinates(end_x=event.x, end_y=event.y)
-        self.selection_rect.create()
-
-    ##
-    def bind_draw_mouse_events(self, event=None):
-        self.canvas.bind("<Button-1>", self.start_draw)
-        self.canvas.bind("<B1-Motion>", self.update_draw)
-        self.canvas.bind("<ButtonRelease-1>", self.create_menus)
-
-    def start_draw(self, event):
-        self.destroy_menus()
-        self.move_menu.destroy()
-        self.drawing_element.set_coordinates(start_x=event.x, start_y=event.y)
-        self.drawing_selection.set_coordinates(start_x=event.x, start_y=event.y)
-
-    def update_draw(self, event):
-        self.drawing_element.set_coordinates(end_x=event.x, end_y=event.y)
-        self.drawing_element.create()
-        self.drawing_selection.set_coordinates(end_x=event.x, end_y=event.y)
-        self.drawing_selection.create()
-        self.canvas.tag_raise(self.drawing_selection.get_tags())
-        self.canvas.tag_raise(self.drawing_element.get_tags())
-
-    def create_dimming_rectangle(self, event):
-        self.canvas.coords(self.dimming_rect, 0, 0, event.width, event.height)
-
-    # Menu
     def create_menu(self, event=None):
         self.destroy_menus()
 
@@ -324,6 +297,26 @@ class ScreenWindow(ctk.CTkToplevel):
                                                self.main_menu.cget("height"))
         self.draw_menu.place_configure(x=position[0], y=position[1] + 5)
 
+    def create_drawing_element_menu(self):
+        self.destroy_drawing_element_menu()
+
+        arrow_icon = Image.open("images/arrow-icon.png")
+        dashed_icon = Image.open("images/dashed-icon.png")
+        fill_icon = Image.open("images/fill-icon.png")
+
+        if type(self.drawing_element).__name__ == "Line":
+            images = (arrow_icon, dashed_icon)
+            values = ["arrow", "dash"]
+        else:
+            images = (dashed_icon, fill_icon)
+            values = ["dash", "fill"]
+
+        self.additional_line_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
+                                                     values=values, images=images, fg_color="gray50",
+                                                     command=self.drawing_element_menu_callback)
+
+        self.additional_line_menu.place_configure(x=0, y=0)
+
     def create_color_picker_menu(self, position):
         self.destroy_color_picker_menu()
         hover_color = self.lighten_color(self.drawing_color)
@@ -338,6 +331,10 @@ class ScreenWindow(ctk.CTkToplevel):
         position = self.find_suitable_position(possible_positions, self.main_menu.cget("width"),
                                                self.main_menu.cget("height"))
         self.color_picker_button.place_configure(x=position[0], y=position[1])
+
+    def del_func(self):
+        self.destroy_menus()
+        self.destroy_canvas_elements()
 
     def lighten_color(self, hex_color: hex, brightness_increase: float = 0.2):
         red = int(hex_color[1:3], 16)
@@ -354,21 +351,6 @@ class ScreenWindow(ctk.CTkToplevel):
 
         lightened_color = f"#{red:02X}{green:02X}{blue:02X}"
         return lightened_color
-
-    def pick_color(self):
-        self.attributes("-topmost", False)
-
-        drawing_color = colorchooser.askcolor()
-        if drawing_color[1] is not None:
-            self.drawing_color = drawing_color[1]
-
-        self.attributes("-topmost", True)
-        self.create_color_picker_menu(self.main_menu_position)
-
-        if self.drawing_element is not None:
-            self.drawing_element.set_color(self.drawing_color)
-            self.drawing_element.create()
-            self.move_menu.create()
 
     def find_suitable_position(self, possible_positions, width: int, height: int):
         for position in possible_positions:
@@ -396,15 +378,11 @@ class ScreenWindow(ctk.CTkToplevel):
         elif value == "copy":
             self.copy_image()
 
-    def delay(self, func, ms):
-        time.sleep(ms)
-        func()
-
     def draw_menu_callback(self, value):
         self.bind_draw_mouse_events()
         self.unselect_drawing_element()
         if value == "line":
-            self.drawing_element = Line(self.canvas, color=self.drawing_color, width=2, tags="line", min_size=1)
+            self.drawing_element = Line(self.canvas, color=self.drawing_color, width=2, tags="line", min_size=0)
         elif value == "rectangle":
             self.drawing_element = Rectangle(self.canvas, color=self.drawing_color, width=2, tags="rectangle",
                                              min_size=1)
@@ -412,9 +390,34 @@ class ScreenWindow(ctk.CTkToplevel):
             self.drawing_element = Circle(self.canvas, color=self.drawing_color, width=2, tags="circle", min_size=1)
         self.create_drawing_element_menu()
 
+    def drawing_element_menu_callback(self, value):
+        if value == "arrow":
+            self.drawing_element.switch_arrow()
+        elif value == "dash":
+            self.drawing_element.switch_dash()
+        elif value == "fill":
+            self.drawing_element.switch_fill()
+        self.drawing_element.create()
+        self.move_menu.create()
+
     #
 
-    def save_image(self):
+    def pick_color(self):
+        self.attributes("-topmost", False)
+
+        drawing_color = colorchooser.askcolor()
+        if drawing_color[1] is not None:
+            self.drawing_color = drawing_color[1]
+
+        self.attributes("-topmost", True)
+        self.create_color_picker_menu(self.main_menu_position)
+
+        if self.drawing_element is not None:
+            self.drawing_element.set_color(self.drawing_color)
+            self.drawing_element.create()
+            self.move_menu.create()
+
+    def save_image(self, event=None):
         corners_coordinates = self.selection_rect.get_corners_coordinates()
         start_x, end_x = corners_coordinates[0][0], corners_coordinates[1][0]
         start_y, end_y = corners_coordinates[0][1], corners_coordinates[1][1]
@@ -451,7 +454,7 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.after(100, self.create_menus)
 
-    def copy_image(self):
+    def copy_image(self, event=None):
         corners_coordinates = self.selection_rect.get_corners_coordinates()
         start_x, end_x = corners_coordinates[0][0], corners_coordinates[1][0]
         start_y, end_y = corners_coordinates[0][1], corners_coordinates[1][1]
