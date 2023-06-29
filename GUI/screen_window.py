@@ -1,3 +1,4 @@
+import threading
 import time
 from tkinter import colorchooser
 from tkinter.filedialog import asksaveasfilename
@@ -385,12 +386,13 @@ class ScreenWindow(ctk.CTkToplevel):
             self.current_mode = "selection"
             self.create_menus()
         elif value == "save":
-            result = self.save_image()
-            if not self.holding_shift_l and result:
-                self.destroy_window()
+            self.save_image()
         elif value == "copy":
             self.copy_image()
-            self.destroy_window()
+
+    def delay(self, func, ms):
+        time.sleep(ms)
+        func()
 
     def draw_menu_callback(self, value):
         self.bind_draw_mouse_events()
@@ -428,16 +430,20 @@ class ScreenWindow(ctk.CTkToplevel):
         save_path = asksaveasfilename(defaultextension='', filetypes=[("All Files", "*.*")],
                                       initialfile=default_filename, parent=self)
 
-        time.sleep(0.2)
-        screenshot = pyautogui.screenshot()
-        screenshot = screenshot.crop((start_x, start_y, start_x + width + 1, start_y + height + 1))
-        if save_path:
-            screenshot.save(save_path)
-        self.attributes("-topmost", True)
+        def delay_and_screenshot():
+            time.sleep(0.2)
+            screenshot = pyautogui.screenshot()
+            screenshot = screenshot.crop((start_x, start_y, start_x + width, start_y + height))
+            if save_path:
+                screenshot.save(save_path)
+            self.attributes("-topmost", True)
+            if not self.holding_shift_l and save_path:
+                self.destroy_window()
+
+        screenshot_thread = threading.Thread(target=delay_and_screenshot)
+        screenshot_thread.start()
 
         self.after(100, self.create_menus)
-
-        return True if save_path else False
 
     def copy_image(self):
         corners_coordinates = self.selection_rect.get_corners_coordinates()
@@ -456,12 +462,16 @@ class ScreenWindow(ctk.CTkToplevel):
         selection = self.canvas.find_withtag("selection")
         self.canvas.itemconfig(selection, width=0)
 
-        time.sleep(0.2)
-        screenshot = pyautogui.screenshot()
-        screenshot = screenshot.crop((start_x, start_y, start_x + width + 1, start_y + height + 1))
-        copy_screenshot_to_clipboard(screenshot)
+        def delay_and_screenshot():
+            time.sleep(0.1)
+            screenshot = pyautogui.screenshot()
+            screenshot = screenshot.crop(
+                (start_x, start_y, start_x + width, start_y + height))
+            copy_screenshot_to_clipboard(screenshot)
+            self.destroy_window()
 
-        self.after(100, self.create_menus)
+        screenshot_thread = threading.Thread(target=delay_and_screenshot)
+        screenshot_thread.start()
 
     # Destroy
 
