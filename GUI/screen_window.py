@@ -53,7 +53,8 @@ class ScreenWindow(ctk.CTkToplevel):
         self.main_menu = None
         self.main_menu_position = None
         self.draw_menu = None
-        self.additional_line_menu = None
+        self.drawing_element_menu = None
+        self.textbox = ctk.CTkTextbox(master=self, corner_radius=0)
 
         self.color_picker_button = None
 
@@ -75,7 +76,6 @@ class ScreenWindow(ctk.CTkToplevel):
         self.is_arrow = False
 
         self.holding_shift_l = False
-        self.holding_ctrl_l = False
 
         self.bind_events()
 
@@ -110,13 +110,6 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind_alt_l(key_up, key_left, key_right, key_down)
 
         self.bind_configure()
-
-        self.bind("<KeyPress>", lambda event: print(event.keycode, event.keysym))
-        self.bind("<KeyPress>", lambda event: self.bind_by_keycode(event))
-
-    def bind_by_keycode(self, event):
-        if event.keycode == 65 and self.holding_ctrl_l:
-            self.select_all()
 
     def bind_select_all(self):
         self.bind("<Control-a>", lambda event: self.select_all())
@@ -161,17 +154,9 @@ class ScreenWindow(ctk.CTkToplevel):
     def bind_configure(self):
         self.canvas.bind("<Configure>", self.create_dimming_rectangle)
 
-    def control_binds(self):
-        self.holding_ctrl_l = True
-        self.bind_mouse_events()
-
-    def control_unbinds(self):
-        self.holding_ctrl_l = False
-        self.disable_mouse_selection()
-
     def bind_control_l(self):
-        self.bind("<KeyPress-Control_L>", lambda event: self.control_binds)
-        self.bind("<KeyRelease-Control_L>", lambda event: self.control_unbinds)
+        self.bind("<KeyPress-Control_L>", self.bind_mouse_events)
+        self.bind("<KeyRelease-Control_L>", self.disable_mouse_selection)
 
     def bind_shift_l(self, key_up: str, key_left: str, key_right: str, key_down: str):
         self.bind("<KeyPress-Shift_L>", lambda event: self.handle_stretch(event, key_up, key_left, key_right, key_down))
@@ -402,11 +387,11 @@ class ScreenWindow(ctk.CTkToplevel):
             images = (dashed_icon, fill_icon)
             values = ["dash", "fill"]
 
-        self.additional_line_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
+        self.drawing_element_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
                                                      values=values, images=images, fg_color="gray50",
                                                      command=self.drawing_element_menu_callback)
 
-        self.additional_line_menu.place_configure(x=0, y=0)
+        self.drawing_element_menu.place_configure(x=0, y=0)
 
     def create_color_picker_menu(self, position):
         self.destroy_color_picker_menu()
@@ -621,11 +606,32 @@ class ScreenWindow(ctk.CTkToplevel):
 
             pytesseract.pytesseract.tesseract_cmd = "D:/tesseract/tesseract.exe"
             text = pytesseract.image_to_string(screenshot)
-            print(text)
+            textbox_width = self.selection_rect.get_width() - self.selection_rect.get_width() / 5
+            textbox_height = self.selection_rect.get_height() - self.selection_rect.get_height() / 5
 
-            self.textbox = ctk.CTkTextbox(master=self, corner_radius=0)
-            self.textbox.place_configure(x=0, y=0)
+            textbox_width = min(self.canvas.winfo_width()/2-self.canvas.winfo_width()/5, textbox_width)
+            textbox_height = min(self.canvas.winfo_height()/2-self.canvas.winfo_height()/5, textbox_height)
+
+            self.textbox.configure(width=textbox_width,
+                                   height=textbox_height)
+
             self.textbox.insert("0.0", text)
+
+            coordinates = self.selection_rect.get_corners_coordinates()
+
+            possible_positions = [(coordinates[0][0], coordinates[1][1]),
+                                  (coordinates[1][0], coordinates[0][1]),
+                                  (coordinates[0][0] - self.textbox.cget("width") - self.selection_rect.get_width() / 5,
+                                   coordinates[0][1]),
+                                  (coordinates[0][0] - self.textbox.cget("width") - self.selection_rect.get_width() / 5,
+                                   self.canvas.winfo_height() - self.textbox.cget("height")),
+                                  (coordinates[1][0], self.canvas.winfo_height() - self.textbox.cget("height")),
+                                  (coordinates[0][0], coordinates[0][1])]
+
+            position = self.find_suitable_position(possible_positions, self.textbox.cget("width"),
+                                                   self.textbox.cget("height"))
+
+            self.textbox.place_configure(x=position[0], y=position[1])
 
             self.create_menus()
 
@@ -639,7 +645,7 @@ class ScreenWindow(ctk.CTkToplevel):
             "main_menu": self.main_menu,
             "color_picker_button": self.color_picker_button,
             "draw_menu": self.draw_menu,
-            "additional_line_menu": self.additional_line_menu,
+            "drawing_element_menu": self.drawing_element_menu,
         }
         for attr_name, item in items_to_destroy.items():
             if item is not None:
@@ -663,7 +669,7 @@ class ScreenWindow(ctk.CTkToplevel):
 
     def destroy_drawing_element_menu(self):
         items_to_destroy = {
-            "additional_line_menu": self.additional_line_menu,
+            "drawing_element_menu": self.drawing_element_menu,
         }
         for attr_name, item in items_to_destroy.items():
             if item is not None:
