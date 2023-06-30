@@ -22,13 +22,10 @@ class ScreenWindow(ctk.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.is_filled = False
-        self.is_dashed = False
-        self.is_arrow = False
-        self.configure(fg_color="black")  # Темный цвет фона
+        self.configure(fg_color="black")
 
         self.attributes("-topmost", True)
-        self.attributes("-fullscreen", True)  # Окно на весь экран
+        self.attributes("-fullscreen", True)
 
         self.screenshot = pyautogui.screenshot()
         self.resized_screenshot = ImageTk.PhotoImage(self.screenshot)
@@ -55,13 +52,10 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.main_menu = None
         self.main_menu_position = None
-
         self.draw_menu = None
         self.additional_line_menu = None
+
         self.color_picker_button = None
-        self.drawing_element = None
-        self.drawing_selection = Rectangle(self.canvas, color="gray50", tags="drawing_selection", dash=(5, 3),
-                                           min_size=3)
 
         self.move_menu = MoveMenu(
             self.canvas,
@@ -71,9 +65,17 @@ class ScreenWindow(ctk.CTkToplevel):
             additional_func=lambda: self.creating_menu(),
             del_func=lambda: self.del_func())
 
+        self.drawing_element = None
+        self.drawing_selection = Rectangle(self.canvas, color="gray50", tags="drawing_selection", dash=(5, 3),
+                                           min_size=3)
+
         self.drawing_color = "#FF0000"
+        self.is_filled = False
+        self.is_dashed = False
+        self.is_arrow = False
 
         self.holding_shift_l = False
+        self.holding_ctrl_l = False
 
         self.bind_events()
 
@@ -99,6 +101,7 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.bind_unselect()
         self.bind_undo()
+        self.bind_select_all()
 
         self.bind_control_l()
         self.bind_save_copy()
@@ -107,6 +110,22 @@ class ScreenWindow(ctk.CTkToplevel):
         self.bind_alt_l(key_up, key_left, key_right, key_down)
 
         self.bind_configure()
+
+        self.bind("<KeyPress>", lambda event: print(event.keycode, event.keysym))
+        self.bind("<KeyPress>", lambda event: self.bind_by_keycode(event))
+
+    def bind_by_keycode(self, event):
+        if event.keycode == 65 and self.holding_ctrl_l:
+            self.select_all()
+
+    def bind_select_all(self):
+        self.bind("<Control-a>", lambda event: self.select_all())
+
+    def select_all(self):
+        self.selection_rect.set_coordinates(start_x=0, start_y=0, end_x=self.canvas.winfo_width(),
+                                            end_y=self.canvas.winfo_height())
+        self.selection_rect.create()
+        self.create_menus()
 
     def bind_undo(self):
         self.bind("<Control-z>", lambda event: self.undo_action())
@@ -142,9 +161,17 @@ class ScreenWindow(ctk.CTkToplevel):
     def bind_configure(self):
         self.canvas.bind("<Configure>", self.create_dimming_rectangle)
 
+    def control_binds(self):
+        self.holding_ctrl_l = True
+        self.bind_mouse_events()
+
+    def control_unbinds(self):
+        self.holding_ctrl_l = False
+        self.disable_mouse_selection()
+
     def bind_control_l(self):
-        self.bind("<KeyPress-Control_L>", self.bind_mouse_events)
-        self.bind("<KeyRelease-Control_L>", self.disable_mouse_selection)
+        self.bind("<KeyPress-Control_L>", lambda event: self.control_binds)
+        self.bind("<KeyRelease-Control_L>", lambda event: self.control_unbinds)
 
     def bind_shift_l(self, key_up: str, key_left: str, key_right: str, key_down: str):
         self.bind("<KeyPress-Shift_L>", lambda event: self.handle_stretch(event, key_up, key_left, key_right, key_down))
