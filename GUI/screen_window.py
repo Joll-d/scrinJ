@@ -341,8 +341,8 @@ class ScreenWindow(ctk.CTkToplevel):
             images = (move_icon, save_icon, copy_icon, undo_icon, redo_icon)
             values = ["draw", "save", "copy", "undo", "redo"]
         elif self.current_mode == "selection":
-            images = (draw_icon, save_icon, copy_icon, txt_icon, undo_icon, redo_icon)
-            values = ["move", "save", "copy", "txt", "undo", "redo"]
+            images = (draw_icon, save_icon, copy_icon, txt_icon)
+            values = ["move", "save", "copy", "txt"]
 
         self.main_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
                                           values=values, images=images, fg_color="gray50",
@@ -365,8 +365,9 @@ class ScreenWindow(ctk.CTkToplevel):
         line_icon = Image.open("images/line-icon.png")
         rectangle_icon = Image.open("images/rectangle-icon.png")
         circle_icon = Image.open("images/circle-icon.png")
-        images = (line_icon, rectangle_icon, circle_icon)
-        values = ["line", "rectangle", "circle"]
+        textbox_icon = Image.open("images/textbox-icon.png")
+        images = (textbox_icon, line_icon, rectangle_icon, circle_icon)
+        values = ["text", "line", "rectangle", "circle"]
 
         self.draw_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
                                           values=values, images=images, fg_color="gray50",
@@ -485,6 +486,8 @@ class ScreenWindow(ctk.CTkToplevel):
             self.drawing_element = Circle(self.canvas, color=self.drawing_color, width=2, tags="circle", min_size=1,
                                           is_dashed=self.is_dashed, is_filled=self.is_filled)
             self.undo_stack.append(self.drawing_element)
+        elif value == "text":
+            pass
         self.create_drawing_element_menu()
 
     def drawing_element_menu_callback(self, value):
