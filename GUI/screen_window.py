@@ -5,6 +5,7 @@ from tkinter.filedialog import asksaveasfilename
 
 import customtkinter as ctk
 import pyautogui as pyautogui
+import pyperclip
 import pytesseract as pytesseract
 from PIL import ImageTk, Image
 
@@ -50,6 +51,7 @@ class ScreenWindow(ctk.CTkToplevel):
         self.current_mode = "selection"
         self.selection_rect = RectangleOutsideDimming(self.canvas)
 
+        self.text_menu = False
         self.main_menu = None
         self.main_menu_position = None
         self.draw_menu = None
@@ -58,6 +60,7 @@ class ScreenWindow(ctk.CTkToplevel):
 
         self.color_picker_button = None
 
+        self.texbox_menu = None
         self.move_menu = MoveMenu(
             self.canvas,
             self.selection_rect,
@@ -310,6 +313,8 @@ class ScreenWindow(ctk.CTkToplevel):
                                                        end_x=corners[1][0], end_y=corners[1][1])
                 self.drawing_selection.create()
 
+        if self.text_menu:
+            self.place_texbox()
         self.bind_control_l()
         self.disable_mouse_selection()
 
@@ -367,7 +372,8 @@ class ScreenWindow(ctk.CTkToplevel):
                                           values=values, images=images, fg_color="gray50",
                                           command=self.draw_menu_callback)
 
-        possible_positions = [(position[0], position[1] - self.draw_menu.cget("height"))]
+        possible_positions = [(position[0], position[1] - self.draw_menu.cget("height")),
+                              (position[0], position[1] + self.main_menu.cget("height")-self.main_menu.cget("height")/4)]
 
         position = self.find_suitable_position(possible_positions, self.main_menu.cget("width"),
                                                self.main_menu.cget("height"))
@@ -411,6 +417,8 @@ class ScreenWindow(ctk.CTkToplevel):
     def del_func(self):
         self.destroy_menus()
         self.destroy_canvas_elements()
+        self.textbox.place_forget()
+        self.destroy_texbox_menu()
 
     def lighten_color(self, hex_color: hex, brightness_increase: float = 0.2):
         red = int(hex_color[1:3], 16)
@@ -455,6 +463,7 @@ class ScreenWindow(ctk.CTkToplevel):
             self.copy_image()
         elif value == "txt":
             self.image_to_txt()
+            self.text_menu = True
         elif value == "undo":
             self.undo_action()
         elif value == "redo":
@@ -494,6 +503,15 @@ class ScreenWindow(ctk.CTkToplevel):
         if self.drawing_element is not None:
             self.drawing_element.create()
             self.move_menu.create()
+
+    def texbox_menu_callback(self, value):
+        if value == "copy":
+            text = self.textbox.get("0.0", "end")
+            pyperclip.copy(text)
+        elif value == "close":
+            self.text_menu = False
+            self.textbox.place_forget()
+            self.destroy_texbox_menu()
 
     def flip_flap(self, value: bool):
         return False if value else True
@@ -541,7 +559,7 @@ class ScreenWindow(ctk.CTkToplevel):
             time.sleep(0.2)
             screenshot = pyautogui.screenshot()
             screenshot = screenshot.crop((start_x, start_y, start_x + width, start_y + height))
-            screenshot = screenshot.resize((width * 2, height * 2))
+            screenshot = screenshot.resize((int(width * 2), int(height * 2)))
             if save_path:
                 screenshot.save(save_path)
             self.attributes("-topmost", True)
@@ -609,29 +627,15 @@ class ScreenWindow(ctk.CTkToplevel):
             textbox_width = self.selection_rect.get_width() - self.selection_rect.get_width() / 5
             textbox_height = self.selection_rect.get_height() - self.selection_rect.get_height() / 5
 
-            textbox_width = min(self.canvas.winfo_width()/2-self.canvas.winfo_width()/5, textbox_width)
-            textbox_height = min(self.canvas.winfo_height()/2-self.canvas.winfo_height()/5, textbox_height)
+            textbox_width = min(self.canvas.winfo_width() / 2 - self.canvas.winfo_width() / 5, textbox_width)
+            textbox_height = min(self.canvas.winfo_height() / 2 - self.canvas.winfo_height() / 5, textbox_height)
 
             self.textbox.configure(width=textbox_width,
                                    height=textbox_height)
 
             self.textbox.insert("0.0", text)
 
-            coordinates = self.selection_rect.get_corners_coordinates()
-
-            possible_positions = [(coordinates[0][0], coordinates[1][1]),
-                                  (coordinates[1][0], coordinates[0][1]),
-                                  (coordinates[0][0] - self.textbox.cget("width") - self.selection_rect.get_width() / 5,
-                                   coordinates[0][1]),
-                                  (coordinates[0][0] - self.textbox.cget("width") - self.selection_rect.get_width() / 5,
-                                   self.canvas.winfo_height() - self.textbox.cget("height")),
-                                  (coordinates[1][0], self.canvas.winfo_height() - self.textbox.cget("height")),
-                                  (coordinates[0][0], coordinates[0][1])]
-
-            position = self.find_suitable_position(possible_positions, self.textbox.cget("width"),
-                                                   self.textbox.cget("height"))
-
-            self.textbox.place_configure(x=position[0], y=position[1])
+            self.place_texbox()
 
             self.create_menus()
 
@@ -639,6 +643,54 @@ class ScreenWindow(ctk.CTkToplevel):
         screenshot_thread.start()
 
     # Destroy
+    def create_texbox_menu(self, texbox_position):
+        self.destroy_texbox_menu()
+
+        close_icon = Image.open("images/close-icon.png")
+        copy_icon = Image.open("images/copy-icon.png")
+
+        images = (copy_icon, close_icon)
+        values = ["copy", "close"]
+
+        self.texbox_menu = ImageButtonGroup(self, border_width=0, orientation="horizontal",
+                                            values=values, images=images, fg_color="gray50",
+                                            command=self.texbox_menu_callback)
+
+        possible_positions = [
+            (texbox_position[0],
+             texbox_position[1] + self.textbox.cget("height") + self.textbox.cget("height") / 5 + self.texbox_menu.cget(
+                 "height") / 4),
+            (texbox_position[0] + self.textbox.cget("width") + self.textbox.cget("width") / 5 - self.texbox_menu.cget(
+                "width"),
+             texbox_position[1] + self.textbox.cget("height") + self.textbox.cget("height") / 5 - self.texbox_menu.cget(
+                 "height") / 2)
+        ]
+
+        position = self.find_suitable_position(possible_positions, self.texbox_menu.cget("width"),
+                                               self.texbox_menu.cget("height"))
+        self.texbox_menu.place_configure(x=position[0] + 5, y=position[1])
+
+        return position
+
+    def place_texbox(self):
+        coordinates = self.selection_rect.get_corners_coordinates()
+
+        possible_positions = [(coordinates[0][0], coordinates[1][1]),
+                              (coordinates[1][0], coordinates[0][1]),
+                              (coordinates[0][0] - self.textbox.cget("width") - self.selection_rect.get_width() / 5,
+                               coordinates[0][1]),
+                              (coordinates[0][0] - self.textbox.cget("width") - self.selection_rect.get_width() / 5,
+                               self.canvas.winfo_height() - self.textbox.cget("height")),
+                              (coordinates[1][0], self.canvas.winfo_height() - self.textbox.cget("height")),
+                              (coordinates[0][0], coordinates[0][1])]
+
+        position = self.find_suitable_position(possible_positions,
+                                               self.textbox.cget("width") + self.textbox.cget("width") / 5,
+                                               self.textbox.cget("height") + self.textbox.cget("height") / 5)
+
+        self.textbox.place_configure(x=position[0], y=position[1])
+
+        self.create_texbox_menu(position)
 
     def destroy_menus(self):
         items_to_destroy = {
@@ -661,6 +713,15 @@ class ScreenWindow(ctk.CTkToplevel):
     def destroy_color_picker_menu(self):
         items_to_destroy = {
             "color_picker_button": self.color_picker_button,
+        }
+        for attr_name, item in items_to_destroy.items():
+            if item is not None:
+                item.destroy()
+                setattr(self, attr_name, None)
+
+    def destroy_texbox_menu(self):
+        items_to_destroy = {
+            "texbox_menu": self.texbox_menu,
         }
         for attr_name, item in items_to_destroy.items():
             if item is not None:
