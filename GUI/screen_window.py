@@ -14,6 +14,7 @@ from custom_widgets.canvas.circle import Circle
 from custom_widgets.canvas.line import Line
 from custom_widgets.canvas.rectangle import Rectangle
 from custom_widgets.canvas.rectangle_outside_dimming import RectangleOutsideDimming
+from custom_widgets.canvas.text import Text
 from custom_widgets.move_menu import MoveMenu
 from handlers.clipboard_handler import copy_screenshot_to_clipboard
 
@@ -226,12 +227,24 @@ class ScreenWindow(ctk.CTkToplevel):
         self.move_menu.destroy()
         self.drawing_element.set_coordinates(start_x=event.x, start_y=event.y)
         self.drawing_selection.set_coordinates(start_x=event.x, start_y=event.y)
+        if type(self.drawing_element).__name__ == "Text":
+            self.drawing_element.set_coordinates(end_x=event.x + 25, end_y=event.y + 15)
+            self.drawing_selection.set_coordinates(end_x=event.x + 25, end_y=event.y + 15)
+            self.drawing_element.create()
 
     def update_draw(self, event):
-        self.drawing_element.set_coordinates(end_x=event.x, end_y=event.y)
+
+        if type(self.drawing_element).__name__ == "Text":
+            self.drawing_element.set_coordinates(start_x=event.x, start_y=event.y)
+            self.drawing_selection.set_coordinates(start_x=event.x, start_y=event.y)
+            self.drawing_element.set_coordinates(end_x=event.x + 25, end_y=event.y + 15)
+            self.drawing_selection.set_coordinates(end_x=event.x + 25, end_y=event.y + 15)
+        else:
+            self.drawing_element.set_coordinates(end_x=event.x, end_y=event.y)
+            self.drawing_selection.set_coordinates(end_x=event.x, end_y=event.y)
         self.drawing_element.create()
-        self.drawing_selection.set_coordinates(end_x=event.x, end_y=event.y)
         self.drawing_selection.create()
+
         self.canvas.tag_raise(self.drawing_selection.get_tags())
         self.canvas.tag_raise(self.drawing_element.get_tags())
 
@@ -291,14 +304,29 @@ class ScreenWindow(ctk.CTkToplevel):
         self.move_menu.destroy()
         if self.current_mode == "selection":
             self.move_menu.set_target(self.selection_rect)
+            self.move_menu.set_mode("all")
             self.move_menu.set_limits(True)
             self.move_menu.create()
             self.destroy_canvas_elements()
         elif self.current_mode == "draw":
+            if type(self.drawing_element).__name__ == "Text":
+                self.bind("<Key>", lambda event: self.handle_text_input(event))
+
             if self.drawing_element is not None:
                 self.move_menu.set_target(self.drawing_element)
+                if type(self.drawing_element).__name__ == "Text":
+                    self.move_menu.set_mode("move")
+                else:
+                    self.move_menu.set_mode("all")
                 self.move_menu.set_limits(False)
                 self.move_menu.create()
+
+    def handle_text_input(self, event):
+        if event.keycode == 8:
+            self.drawing_element.subtract()
+        else:
+            self.drawing_element.add(event.char)
+        self.drawing_element.create()
 
     def creating_menu(self):
         self.main_menu_position = self.create_menu()
@@ -390,6 +418,9 @@ class ScreenWindow(ctk.CTkToplevel):
         if type(self.drawing_element).__name__ == "Line":
             images = (arrow_icon, dashed_icon)
             values = ["arrow", "dash"]
+        elif type(self.drawing_element).__name__ == "Text":
+            images = (None,)
+            values = None
         else:
             images = (dashed_icon, fill_icon)
             values = ["dash", "fill"]
@@ -487,7 +518,8 @@ class ScreenWindow(ctk.CTkToplevel):
                                           is_dashed=self.is_dashed, is_filled=self.is_filled)
             self.undo_stack.append(self.drawing_element)
         elif value == "text":
-            pass
+            self.drawing_element = Text(self.canvas, color=self.drawing_color, tags="text", min_size=1)
+            self.undo_stack.append(self.drawing_element)
         self.create_drawing_element_menu()
 
     def drawing_element_menu_callback(self, value):
@@ -744,6 +776,7 @@ class ScreenWindow(ctk.CTkToplevel):
         self.move_menu.destroy()
         self.drawing_selection.destroy()
         self.drawing_element = None
+        self.unbind("<Key>")
 
     def destroy_window(self, event=None):
         self.destroy()

@@ -13,7 +13,8 @@ class MoveMenu:
             corner_button_max_size: int = 10,
             additional_func: Union[Callable[[], None], None] = None,
             del_func: Union[Callable[[], None], None] = None,
-            limits: bool = True):
+            limits: bool = True,
+            mode: str = "all"):
 
         self._target_min_size = target.get_min_size()
         self._target_symmetry = target.get_symmetry()
@@ -21,6 +22,7 @@ class MoveMenu:
         self._additional_func = additional_func
         self._del_func = del_func
         self._limits = limits
+        self._mode = mode
 
         self._end_y = [0]
         self._end_x = [0]
@@ -48,31 +50,33 @@ class MoveMenu:
         if self._target.get_width() <= 5 or self._target.get_height() <= 5:
             corners_coordinates = corners_coordinates[:2]
 
-        for i, position in enumerate(corners_coordinates):
-            self._create_move_button(position, "corner", button_index=i + 1)
+        if self._mode == "all" or self._mode == "stretch":
+            for i, position in enumerate(corners_coordinates):
+                self._create_move_button(position, "corner", button_index=i + 1)
 
-        if self._target.get_width() > 5 and self._target.get_height() > 5:
-            if self._target_symmetry:
-                coordinate_indices = [0, 0, 3, 2]
-                button_indices = [5, 6, 7, 8]
-            else:
-                corners_coordinates = self._target.get_corners_coordinates()
-                if self._start_x[0] < self._end_x[0]:
+            if self._target.get_width() > 5 and self._target.get_height() > 5:
+                if self._target_symmetry:
                     coordinate_indices = [0, 0, 3, 2]
                     button_indices = [5, 6, 7, 8]
                 else:
-                    coordinate_indices = [3, 0, 0, 2]
-                    button_indices = [7, 6, 5, 8]
-            orientations = ['horizontal', 'vertical', 'horizontal', 'vertical']
+                    corners_coordinates = self._target.get_corners_coordinates()
+                    if self._start_x[0] < self._end_x[0]:
+                        coordinate_indices = [0, 0, 3, 2]
+                        button_indices = [5, 6, 7, 8]
+                    else:
+                        coordinate_indices = [3, 0, 0, 2]
+                        button_indices = [7, 6, 5, 8]
+                orientations = ['horizontal', 'vertical', 'horizontal', 'vertical']
 
-            for coord_index, orientation, button_index in zip(coordinate_indices, orientations, button_indices):
-                self._create_move_button(corners_coordinates[coord_index], "side", side=orientation,
-                                         button_index=button_index)
+                for coord_index, orientation, button_index in zip(coordinate_indices, orientations, button_indices):
+                    self._create_move_button(corners_coordinates[coord_index], "side", side=orientation,
+                                             button_index=button_index)
 
-        corners_coordinates = self._target.get_corners_coordinates()
-        center_position = [corners_coordinates[0][0], corners_coordinates[0][1]]
+        if self._mode == "all" or self._mode == "move":
+            corners_coordinates = self._target.get_corners_coordinates()
+            center_position = [corners_coordinates[0][0], corners_coordinates[0][1]]
 
-        self._create_move_button(center_position, "center", button_index=0)
+            self._create_move_button(center_position, "center", button_index=0)
 
     def _create_move_button(self, position, button_type: str, side: str = None,
                             button_index: int = None):
@@ -520,6 +524,10 @@ class MoveMenu:
     def destroy(self):
         for i in range(9):
             self._master.delete(f"button_{i}")
+
+    def set_mode(self, mode):
+        # "all", "move", "stretch"
+        self._mode = mode
 
     def __del__(self):
         self.destroy()
